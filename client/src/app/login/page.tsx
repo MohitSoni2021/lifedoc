@@ -19,7 +19,7 @@ export default function Login() {
   useEffect(() => {
     // Redirect if already authenticated
     if (isAuthenticated) {
-      router.push('/');
+      router.push('/dashboard');
     }
   }, [isAuthenticated, router]);
 
@@ -40,7 +40,7 @@ export default function Login() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     const result = await dispatch(loginUser({
       email: formData.email,
       password: formData.password,
@@ -48,7 +48,7 @@ export default function Login() {
     }));
 
     if (loginUser.fulfilled.match(result)) {
-      router.push('/');
+      router.push('/dashboard');
     }
   };
 
