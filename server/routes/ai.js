@@ -206,7 +206,7 @@ router.post('/summerizer', auth, async (req, res) => {
 // Desc: Analyze lab report image/PDF using Gemini
 router.post('/analyze-lab-report', auth, async (req, res) => {
     try {
-        const { image } = req.body; // Base64 string
+        const { image, notes, reportDate: userDate, testType: userTestType } = req.body; // Base64 string and optional overrides
 
         if (!image) {
             return res.status(400).json({ msg: 'Please upload a lab report image' });
@@ -260,20 +260,35 @@ router.post('/analyze-lab-report', auth, async (req, res) => {
         const textResponse = response.text();
         const aiResult = JSON.parse(textResponse);
 
-        // Determine test type and date
-        const reportDate = aiResult.labReport?.reportDate ? new Date(aiResult.labReport.reportDate) : new Date();
-        let testType = "General Lab Report";
-        if (aiResult.tests && aiResult.tests.length > 0) {
-            testType = aiResult.tests[0].testCategory || aiResult.tests[0].testName || "General Lab Report";
+        // Determine test type and date (User overrides take precedence if provided, otherwise AI)
+        const finalReportDate = userDate ? new Date(userDate) : (aiResult.labReport?.reportDate ? new Date(aiResult.labReport.reportDate) : new Date());
+
+        let finalTestType = userTestType || "General Lab Report";
+        if (!userTestType && aiResult.tests && aiResult.tests.length > 0) {
+            finalTestType = aiResult.tests[0].testCategory || aiResult.tests[0].testName || "General Lab Report";
+        }
+
+        // Upload to Cloudinary
+        const cloudinary = require('../utils/cloudinary');
+        let cloudinaryUrl = null;
+        try {
+            const uploadResponse = await cloudinary.uploader.upload(image, {
+                folder: 'lab_reports',
+                resource_type: 'auto'
+            });
+            cloudinaryUrl = uploadResponse.secure_url;
+        } catch (uploadError) {
+            console.error("Cloudinary Upload Error:", uploadError.message);
         }
 
         const newLabReport = new LabReport({
             userId: req.user.id,
-            reportDate: reportDate,
-            testType: testType,
+            reportDate: finalReportDate,
+            testType: finalTestType,
             parsedResults: aiResult,
-            fileUrl: image, // Storing base64 for now
-            notes: "Analyzed by AI"
+            fileUrl: cloudinaryUrl || image, // Use Cloudinary URL if available, else fallback to base64
+            originalReport: cloudinaryUrl, // Keep this for now as per previous request
+            notes: notes || "Analyzed by AI"
         });
 
         await newLabReport.save();
