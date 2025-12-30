@@ -12,6 +12,7 @@ import { FaHeartbeat, FaTint, FaWeight, FaCalendarCheck, FaMicrophone, FaFileMed
 import VitalsCard from '@/components/dashboard/VitalsCard';
 import HealthTrendChart from '@/components/dashboard/HealthTrendChart';
 import HealthNewsWidget from '@/components/dashboard/HealthNewsWidget';
+import UpcomingAppointments from '@/components/dashboard/UpcomingAppointments';
 import DashboardSkeleton from '@/components/dashboard/DashboardSkeleton';
 
 export default function Dashboard() {
@@ -180,6 +181,8 @@ export default function Dashboard() {
                             dataKey="value"
                             color="#38B2AC" // Teal 400
                         />
+
+                        <UpcomingAppointments />
 
                         {/* Recent Activity List */}
                         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-8">

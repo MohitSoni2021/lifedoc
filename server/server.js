@@ -9,6 +9,7 @@ const labReportRoutes = require("./routes/labReports");
 const doctorReportRoutes = require("./routes/doctorReports");
 const aiRoutes = require("./routes/ai");
 const newsRoutes = require("./routes/news");
+const appointmentRoutes = require("./routes/appointments");
 const { startCronJob } = require("./jobs/newsFetcher");
 
 const app = express();
@@ -39,6 +40,8 @@ app.use("/api/lab-reports", labReportRoutes);
 app.use("/api/doctor-reports", doctorReportRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/news", newsRoutes);
+
+app.use("/api/appointments", appointmentRoutes);
 
 const PORT = process.env.SERVER_PORT || 3001;
 
