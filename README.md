@@ -77,23 +77,27 @@ graph TD
     C -->|Vision OCR| G[OpenAI GPT-4o]
     C -->|Send OTP| H[Nodemailer SMTP]
     
-    subgraph "Backend Services (Controllers)"
+    subgraph Services [Backend Services]
+        direction TB
         C --> I[Auth Controller]
-        C --> J[AI Consultation Controller]
-        C --> K[Prescription Controller]
-        C --> L[Lab Report Controller]
-        C --> M[Family Controller]
+        C --> J[AI Consultation]
+        C --> K[Prescription Engine]
+        C --> L[Lab Report Analyzer]
+        C --> M[Family Guardian]
     end
     
-    subgraph "Middleware Layer"
-        N[Auth Middleware (JWT)]
-        O[File Upload (Multer)]
+    subgraph Middleware [Middleware Layer]
+        direction TB
+        N[Auth Middleware]
+        O[Multer Upload]
         P[Error Handler]
+        Q[Rate Limiter]
     end
     
     I -.->|Uses| N
     J -.->|Uses| N
     K -.->|Uses| O
+    M -.->|Uses| N
 ```
 
 ### B. Data Flow Architecture
