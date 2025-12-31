@@ -25,8 +25,8 @@ const InsightsPage = () => {
             try {
                 const token = localStorage.getItem('token');
                 const [newsRes, savedRes] = await Promise.all([
-                    axios.get('http://localhost:5000/api/news'),
-                    token ? axios.get('http://localhost:5000/api/saved-posts/ids', { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ data: { success: false, data: [] } })
+                    axios.get(`${process.env.NEXT_PUBLIC_API_URL}/news`),
+                    token ? axios.get(`${process.env.NEXT_PUBLIC_API_URL}/saved-posts/ids`, { headers: { Authorization: `Bearer ${token}` } }) : Promise.resolve({ data: { success: false, data: [] } })
                 ]);
 
                 if (newsRes.data.success) {
@@ -60,7 +60,7 @@ const InsightsPage = () => {
             const isSaved = savedArticleIds.has(articleId);
 
             if (isSaved) {
-                await axios.delete(`http://localhost:5000/api/saved-posts/${articleId}`, {
+                await axios.delete(`${process.env.NEXT_PUBLIC_API_URL}/saved-posts/${articleId}`, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setSavedArticleIds(prev => {
@@ -69,7 +69,7 @@ const InsightsPage = () => {
                     return newSet;
                 });
             } else {
-                await axios.post('http://localhost:5000/api/saved-posts', { articleId }, {
+                await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/saved-posts`, { articleId }, {
                     headers: { Authorization: `Bearer ${token}` }
                 });
                 setSavedArticleIds(prev => new Set(prev).add(articleId));

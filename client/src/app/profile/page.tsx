@@ -61,7 +61,7 @@ export default function Profile() {
             if (token) {
                 setLoadingSaved(true);
                 try {
-                    const res = await axios.get('http://localhost:5000/api/saved-posts', {
+                    const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/saved-posts`, {
                         headers: { Authorization: `Bearer ${token}` }
                     });
                     if (res.data.success) {

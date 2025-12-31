@@ -39,8 +39,8 @@ export default function FamilyDashboard() {
             const headers = { Authorization: `Bearer ${token}` };
 
             const [membersRes, requestsRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/family/members', { headers }),
-                axios.get('http://localhost:5000/api/family/requests', { headers }).catch(() => ({ data: { requests: [] } })) // Fallback if route fails
+                axios.get(`${process.env.NEXT_PUBLIC_API_URL}/family/members`, { headers }),
+                axios.get(`${process.env.NEXT_PUBLIC_API_URL}/family/requests`, { headers }).catch(() => ({ data: { requests: [] } })) // Fallback if route fails
             ]);
 
             if (membersRes.data.success) {
@@ -62,7 +62,7 @@ export default function FamilyDashboard() {
             const token = localStorage.getItem('token');
             const conditionsArray = newMember.chronicConditions.split(',').map(c => c.trim()).filter(Boolean);
 
-            await axios.post('http://localhost:5000/api/family/add-member', {
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/family/add-member`, {
                 ...newMember,
                 chronicConditions: conditionsArray
             }, {
@@ -70,7 +70,7 @@ export default function FamilyDashboard() {
             });
 
             setShowAddModal(false);
-            setNewMember({ name: '', relation: '', age: '', gender: 'male', chronicConditions: '' });
+            setNewMember({ name: '', relation: '', age: '', gender: 'male', chronicConditions: '', accessLevel: 'child' });
             fetchData();
         } catch (error) {
             console.error("Error adding member", error);
@@ -86,7 +86,7 @@ export default function FamilyDashboard() {
 
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/family/invite', {
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/family/invite`, {
                 email: inviteEmail,
                 relation: inviteRelation
             }, {
@@ -108,14 +108,11 @@ export default function FamilyDashboard() {
         }
     }
 
-    // ... (keep default)
-
-
 
     const handleRespond = async (familyId: string, action: 'accept' | 'reject') => {
         try {
             const token = localStorage.getItem('token');
-            await axios.post('http://localhost:5000/api/family/respond', { familyId, action }, {
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/family/respond`, { familyId, action }, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             fetchData(); // Refresh to see changes
@@ -124,6 +121,7 @@ export default function FamilyDashboard() {
             alert("Failed to respond");
         }
     }
+
 
     return (
         <div className="flex min-h-screen bg-gray-50">

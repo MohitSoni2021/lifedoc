@@ -21,7 +21,7 @@ export default function MemberHealthPage() {
         setAnalyzing(true);
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.post(`http://localhost:5000/api/family/member/${id}/analyze`, {}, {
+            const res = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/family/member/${id}/analyze`, {}, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.data.success) {
@@ -42,7 +42,7 @@ export default function MemberHealthPage() {
     const fetchHealthData = async () => {
         try {
             const token = localStorage.getItem('token');
-            const res = await axios.get(`http://localhost:5000/api/family/member/${id}/health`, {
+            const res = await axios.get(`${process.env.NEXT_PUBLIC_API_URL}/family/member/${id}/health`, {
                 headers: { Authorization: `Bearer ${token}` }
             });
             if (res.data.success) {
@@ -76,7 +76,7 @@ export default function MemberHealthPage() {
             // Let's try sending `targetUserId` in body if the backend supports it, 
             // or use a new route I'll create: /api/family/member/:id/measurement
 
-            await axios.post(`http://localhost:5000/api/family/member/${id}/measurement`, payload, {
+            await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/family/member/${id}/measurement`, payload, {
                 headers: { Authorization: `Bearer ${token}` }
             });
 
