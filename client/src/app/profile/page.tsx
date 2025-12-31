@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { updateUserProfile, uploadProfilePhoto, fetchUserProfile } from '@/store/slices/authSlice';
-import { FaUser, FaEnvelope, FaBirthdayCake, FaIdCard, FaEdit, FaTimes, FaSave, FaCamera, FaStethoscope, FaCheck, FaChevronRight, FaBookmark } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaBirthdayCake, FaIdCard, FaEdit, FaTimes, FaSave, FaCamera, FaStethoscope, FaCheck, FaChevronRight, FaBookmark, FaShareAlt } from 'react-icons/fa';
 import axios from 'axios';
 import Link from 'next/link';
 
@@ -41,6 +41,20 @@ export default function Profile() {
     // Saved Posts State
     const [savedPosts, setSavedPosts] = useState<any[]>([]);
     const [loadingSaved, setLoadingSaved] = useState(false);
+    const [copySuccess, setCopySuccess] = useState(false);
+
+    const handleShareProfile = () => {
+        if (!user) return;
+        // Use _id or id depending on what's available
+        const userId = (user as any)._id || user.id;
+        if (!userId) return;
+
+        const shareUrl = `${window.location.origin}/share/${userId}`;
+        navigator.clipboard.writeText(shareUrl).then(() => {
+            setCopySuccess(true);
+            setTimeout(() => setCopySuccess(false), 2000);
+        });
+    };
 
     useEffect(() => {
         const fetchSavedPosts = async () => {
@@ -349,6 +363,13 @@ export default function Profile() {
                                         >
                                             <FaStethoscope />
                                             Explain Yourself
+                                        </button>
+                                        <button
+                                            onClick={handleShareProfile}
+                                            className="text-[#7A8E6B] hover:text-[#6a7d5d] transition-colors flex items-center gap-1 text-sm font-semibold bg-[#7A8E6B]/10 px-3 py-1.5 rounded-lg"
+                                        >
+                                            {copySuccess ? <FaCheck /> : <FaShareAlt />}
+                                            {copySuccess ? 'Copied!' : 'Share'}
                                         </button>
                                         <button
                                             onClick={() => setEditSection('health')}
