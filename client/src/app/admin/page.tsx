@@ -20,7 +20,7 @@ export default function AdminDashboard() {
     const [meetingRequests, setMeetingRequests] = useState<any[]>([]);
     const [approvedMeetings, setApprovedMeetings] = useState<any[]>([]);
     const [approvalModal, setApprovalModal] = useState<{ isOpen: boolean, requestId: string | null, requestTopic: string }>({ isOpen: false, requestId: null, requestTopic: '' });
-    const [approvalForm, setApprovalForm] = useState({ meetingLink: 'https://meet.google.com/new', scheduledAt: '' });
+    const [approvalForm, setApprovalForm] = useState({ meetingLink: 'https://meet.google.com/new', scheduledAt: '', duration: 60 });
 
     useEffect(() => {
         if (user && user.type !== 'admin') {
@@ -103,7 +103,8 @@ export default function AdminDashboard() {
             await axios.put(`${process.env.NEXT_PUBLIC_API_URL}/meetings/approve/${approvalModal.requestId}`,
                 {
                     meetingLink: approvalForm.meetingLink,
-                    scheduledAt: approvalForm.scheduledAt
+                    scheduledAt: approvalForm.scheduledAt,
+                    duration: approvalForm.duration
                 },
                 { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -473,6 +474,15 @@ export default function AdminDashboard() {
                                         className="w-full p-3 rounded-xl border border-gray-200 focus:border-red-500 text-gray-700"
                                         value={approvalForm.scheduledAt}
                                         onChange={(e) => setApprovalForm({ ...approvalForm, scheduledAt: e.target.value })}
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Duration (Minutes)</label>
+                                    <input
+                                        type="number"
+                                        className="w-full p-3 rounded-xl border border-gray-200 focus:border-red-500 text-gray-700"
+                                        value={approvalForm.duration}
+                                        onChange={(e) => setApprovalForm({ ...approvalForm, duration: Number(e.target.value) })}
                                     />
                                 </div>
                             </div>

@@ -6,7 +6,8 @@ import DashboardLayout from '@/components/DashboardLayout';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
-import { FaMicrophone, FaStop, FaRobot, FaVolumeUp, FaLanguage } from 'react-icons/fa';
+import { FaMicrophone, FaStop, FaRobot, FaVolumeUp, FaLanguage, FaFileUpload } from 'react-icons/fa';
+import ReactMarkdown from 'react-markdown';
 
 export default function ConsultationPage() {
     const [isClient, setIsClient] = useState(false);
@@ -311,3 +312,4 @@ export default function ConsultationPage() {
         </ProtectedRoute>
     );
 }
+      

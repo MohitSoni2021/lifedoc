@@ -30,6 +30,10 @@ const MeetingRequestSchema = new mongoose.Schema({
     scheduledAt: {
         type: Date
     },
+    duration: {
+        type: Number,
+        default: 60 // Minutes
+    },
     summary: {
         type: String
     },

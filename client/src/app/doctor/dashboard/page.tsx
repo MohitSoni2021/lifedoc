@@ -252,9 +252,15 @@ export default function DoctorDashboard() {
                                                 {mtg.urgency}
                                             </span>
                                             {mtg.scheduledAt ? (
-                                                <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-100">
-                                                    📅 {new Date(mtg.scheduledAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                                                </span>
+                                                <div className="flex flex-col items-end">
+                                                    <span className="text-xs font-bold text-red-600 bg-red-50 px-2 py-1 rounded-full border border-red-100 mb-1">
+                                                        📅 {new Date(mtg.scheduledAt).toLocaleDateString([], { month: 'short', day: 'numeric' })}
+                                                    </span>
+                                                    <span className="text-[10px] font-bold text-gray-500">
+                                                        ⏰ {new Date(mtg.scheduledAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {new Date(new Date(mtg.scheduledAt).getTime() + (mtg.duration || 60) * 60000).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                                    </span>
+                                                    <span className="text-[10px] text-gray-400">({mtg.duration || 60} mins)</span>
+                                                </div>
                                             ) : (
                                                 <span className="text-xs text-gray-400">
                                                     {new Date(mtg.createdAt).toLocaleDateString()}

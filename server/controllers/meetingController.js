@@ -46,7 +46,7 @@ exports.getPendingRequests = async (req, res) => {
 // @access  Admin
 exports.approveMeeting = async (req, res) => {
     try {
-        const { meetingLink, scheduledAt } = req.body;
+        const { meetingLink, scheduledAt, duration } = req.body;
         const request = await MeetingRequest.findById(req.params.id);
 
         if (!request) {
@@ -56,6 +56,7 @@ exports.approveMeeting = async (req, res) => {
         request.status = 'approved';
         request.meetingLink = meetingLink || `https://meet.google.com/new`;
         request.scheduledAt = scheduledAt || new Date();
+        request.duration = duration || 60;
 
         await request.save();
 
