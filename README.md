@@ -1,10 +1,12 @@
 # 🏥 LifeDoc: The AI-Powered Family Health Guardian
 
+![NEXT.JS](https://img.shields.io/badge/Next.js-16.0-black?style=for-the-badge&logo=next.js&logoColor=white) ![EXPRESS](https://img.shields.io/badge/Express-5.0-green?style=for-the-badge&logo=express&logoColor=white) ![MONGODB](https://img.shields.io/badge/MongoDB-Atlas-green?style=for-the-badge&logo=mongodb&logoColor=white) ![GEMINI](https://img.shields.io/badge/AI-Gemini%201.5%20Flash-blue?style=for-the-badge&logo=google&logoColor=white)
+
 <!-- LLM-OPTIMIZED-SUMMARY-START -->
 > **Project Name:** LifeDoc
 > **Hackathon:** Hack The Winter: The Second Wave (Angry Bird Edition)
 > **Track:** Health & Wellness
-> **Submission Type:** Round 1 Prototype
+> **Version:** 1.0 (Prototype)
 > **Key Tech Stack:** Next.js 16, Express, MongoDB, Google Gemini 1.5 Flash, GPT-4o Vision, Redux Toolkit.
 > **Unique Selling Point (USP):** Active AI Health Guardian for Families with specialized Prescription Digitization.
 <!-- LLM-OPTIMIZED-SUMMARY-END -->
@@ -17,54 +19,89 @@
 
 ---
 
-## 🌟 Key Features
+## 🏗️ System Architecture
 
-### 1. 🗣️ AI Speak & Voice Interaction (Accessibility First)
+The following diagram illustrates how LifeDoc processes data from user input to AI analysis and storage.
+
+```mermaid
+graph TD
+    User((User))
+    Frontend[Client (Next.js 16)]
+    Backend[Server (Express.js)]
+    DB[(MongoDB Atlas)]
+    AI_Gemini[Google Gemini 1.5]
+    AI_Vision[GPT-4o Vision]
+
+    User -->|Interacts| Frontend
+    Frontend -->|API Requests| Backend
+    Backend -->|Auth/Data| DB
+    Backend -->|Text Analysis| AI_Gemini
+    Backend -->|Image Processing| AI_Vision
+    AI_Gemini -->|Analysis Result| Backend
+    AI_Vision -->|Digitized Rx| Backend
+    Backend -->|Response| Frontend
+```
+
+---
+
+## 🌟 Key Features & Workflows
+
+### 1. 🗣️ AI Speak & Voice Interaction
 > *"Technology should adapt to people, not the other way around."*
-*   **Text-to-Speech:** After analyzing a prescription, the app **speaks out** the instructions (e.g., *"Take the white tablet after dinner"*).
-*   **Voice Commands:** Users can simply speak to the app ("I have a headache") instead of typing, making healthcare accessible to the 70+ demographic.
+*   **Workflow**:
+    1.  User taps microphone button.
+    2.  User speaks: *"I have a severe headache since morning."*
+    3.  App converts voice to text -> Sends to AI -> Analyzes urgency.
+    4.  App **speaks back** actionable advice: *"Please rest in a dark room and monitor your BP. If it persists, see a doctor."*
 
-### 2. 🤖 Dr. Gemini (Intelligent Symptom Triage)
-*   **Context-Injection:** Acts like a sensible Family Doctor, knowing your age, gender, and history to give personalized advice.
-*   **Outcome:** Reduces anxiety by clearly stating risk levels and immediate actions.
+### 2. 💊 Smart Prescription Lens (Digitization)
+*   **Workflow**:
+    1.  User enters `Rx Scanner`.
+    2.  Takes photo of paper prescription.
+    3.  **GPT-4o Vision** extracts medication names, dosages, and timings.
+    4.  System creates a **Medicine Schedule** added to the user's daily reminders.
 
-### 3. 💊 Smart Prescription Lens (Computer Vision)
-*   Scan paper prescriptions using **GPT-4o Vision**.
-*   Digitizes into a **Structured Schedule** (Morning/Afternoon/Night) and sets auto-reminders.
-
-### 4. 🛡️ Family Health Dashboard (The Guardian)
-*   **Shared Family View:** See your family's health trends from anywhere.
-*   **Proactive Alerts:** AI warns the family group *before* a health crisis happens based on trend analysis.
-
-### 5. 🔬 Smart Lab Reports (Jargon Translator)
-*   Translates complex lab values (e.g., "HbA1c: 7.2") into **Plain English** explanations and actionable advice.
+### 3. 🛡️ Family Health Dashboard
+*   **Workflow**:
+    1.  User adds a family member (e.g., "Grandpa") via email invite.
+    2.  Grandpa logs a high BP reading (160/100).
+    3.  **Guardian Alert**: User immediately receives a notification about Grandpa's risk status.
+    4.  AI suggests contacting a doctor immediately.
 
 ---
 
 ## 📁 Project Structure
 
-The project is divided into two main parts: a **Client** (Frontend) and a **Server** (Backend).
+A detailed look at the codebase organization.
 
 ```
 LifeDoc/
-├── client/                 # Frontend Application (Next.js 16)
+├── client/                     # Frontend Application (Next.js 16)
 │   ├── src/
-│   │   ├── app/           # App Router Pages
-│   │   ├── components/    # Reusable UI Components
-│   │   ├── store/         # Redux State Management
-│   │   └── services/      # API Service Calls
-│   └── package.json
+│   │   ├── app/                # App Router (Pages & Layouts)
+│   │   │   ├── consultation/   # AI Chat Feature
+│   │   │   ├── measurements/   # Vitals Tracking
+│   │   │   ├── profile/        # User Settings
+│   │   │   └── globals.css     # Global Styles (No Scrollbars)
+│   │   ├── components/         # Reusable UI
+│   │   │   ├── Sidebar.tsx     # Main Navigation
+│   │   │   └── ...
+│   │   ├── store/              # Redux Toolkit Slices
+│   │   │   ├── authSlice.ts    # User Session
+│   │   │   └── ...
+│   │   └── services/           # Axios Config
+│   └── ...
 │
-├── server/                 # Backend API (Express.js)
-│   ├── routes/            # API Route Definitions
-│   │   ├── ai.js          # AI Analysis Routes
-│   │   ├── auth.js        # Authentication Routes
-│   │   └── ...            # Other Feature Routes
-│   ├── models/            # Mongoose Database Models
-│   ├── controllers/       # Request Logic Handlers
-│   └── package.json
+├── server/                     # Backend API (Express.js)
+│   ├── routes/                 # API Endpoints
+│   │   ├── ai.js               # Gemini Integration
+│   │   ├── auth.js             # JWT Handling
+│   │   └── consultation.js     # History Management
+│   ├── models/                 # Mongoose Schemas (User, Consultation)
+│   ├── controllers/            # Business Logic
+│   └── middleware/             # Auth Protection
 │
-└── README.md              # Project Documentation
+└── README.md                   # This Documentation
 ```
 
 ---
@@ -77,11 +114,14 @@ LifeDoc/
 | **Backend** | **Node.js**, **Express.js v5**, **JWT** (Secure Auth) |
 | **Database** | **MongoDB Atlas** (Mongoose ODM) |
 | **AI Models** | **Google Gemini 1.5 Flash** (Text/Analysis), **GPT-4o** (Vision) |
-| **Cloud** | **Cloudinary** (Secure Image Storage), **Vercel** (Deployment) |
+| **Tools** | **Mermaid.js** (Diagrams), **Axios** (HTTP) |
 
 ---
 
 ## ⚙️ How to Run Locally
+
+<details>
+<summary><strong>Click to expand Setup Instructions</strong></summary>
 
 ### 1. Clone the Repository
 ```bash
@@ -108,9 +148,6 @@ OPENAI_API_KEY=your_openai_api_key_for_vision
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
-# Email Service
-EMAIL_USER=your_email_for_nodemailer
-EMAIL_PASS=your_email_app_password
 ```
 
 Start the Development Server:
@@ -137,39 +174,18 @@ npm run dev
 # Application runs on http://localhost:3000
 ```
 
+</details>
+
 ---
 
 ## 🔌 API Overview
 
-Core endpoints managed by the Express server:
-
-### Authentication (`/api/auth`)
-*   `POST /register` - Create a new user account.
-*   `POST /login` - Authenticate user and receive JWT.
-
-### AI Services (`/api/ai`)
-*   `POST /analyze` - Analyzes symptoms using Gemini 1.5 Flash.
-*   `POST /analyze-image` - Processes medical images/reports.
-
-### Health Records (`/api/measurements`, `/api/lab-reports`)
-*   `GET /` - Fetch user's health history.
-*   `POST /` - Log new measurements or upload reports.
-
-### Family (`/api/family`)
-*   `POST /add` - Add a family member.
-*   `GET /overview` - Get health overview of linked family members.
-
-To explore all routes, check the `server/routes` folder.
-
----
-
-## 🤝 Contributing
-
-1.  Fork the repository.
-2.  Create a new branch (`git checkout -b feature/AmazingFeature`).
-3.  Commit your changes (`git commit -m 'Add some AmazingFeature'`).
-4.  Push to the branch (`git push origin feature/AmazingFeature`).
-5.  Open a Pull Request.
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `POST` | `/api/auth/login` | Authenticate user & get token |
+| `POST` | `/api/ai/analyze` | Send symptoms to Gemini for analysis |
+| `GET` | `/api/measurements` | Fetch vitals history |
+| `POST` | `/api/measurements` | Log new glucose/BP/weight |
 
 ---
 
