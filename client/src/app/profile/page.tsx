@@ -9,6 +9,7 @@ import { updateUserProfile, uploadProfilePhoto, fetchUserProfile } from '@/store
 import { FaUser, FaEnvelope, FaBirthdayCake, FaIdCard, FaEdit, FaTimes, FaSave, FaCamera, FaStethoscope, FaCheck, FaChevronRight, FaBookmark, FaShareAlt, FaUserMd } from 'react-icons/fa';
 import axios from 'axios';
 import Link from 'next/link';
+import { QRCodeCanvas } from 'qrcode.react';
 
 export default function Profile() {
     const dispatch = useDispatch<AppDispatch>();
@@ -46,11 +47,21 @@ export default function Profile() {
     // Saved Posts State
     const [savedPosts, setSavedPosts] = useState<any[]>([]);
     const [loadingSaved, setLoadingSaved] = useState(false);
+
     const [copySuccess, setCopySuccess] = useState(false);
+
+    // Share Modal State
+    const [showShareModal, setShowShareModal] = useState(false);
+    const [showQR, setShowQR] = useState(false);
 
     const handleShareProfile = () => {
         if (!user) return;
-        // Use _id or id depending on what's available
+        setShowShareModal(true);
+        setShowQR(false); // Reset QR view when opening
+    };
+
+    const copyToClipboard = () => {
+        if (!user) return;
         const userId = (user as any)._id || user.id;
         if (!userId) return;
 
@@ -645,6 +656,67 @@ export default function Profile() {
                             )}
                         </div>
                     </div>
+
+                    {/* Share Modal */}
+                    {showShareModal && (
+                        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+                            <div className="bg-white rounded-2xl w-full max-w-md shadow-2xl transform transition-all scale-100">
+                                <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-gray-50 rounded-t-2xl">
+                                    <h3 className="text-xl font-bold text-gray-900">Share Profile</h3>
+                                    <button onClick={() => setShowShareModal(false)} className="text-gray-400 hover:text-gray-600">
+                                        <FaTimes className="text-xl" />
+                                    </button>
+                                </div>
+                                <div className="p-6 space-y-6">
+                                    <div className="space-y-2">
+                                        <label className="block text-sm font-semibold text-gray-700">Profile Link</label>
+                                        <div className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                readOnly
+                                                value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${(user as any)?._id || user?.id}`}
+                                                className="w-full bg-gray-50 border border-gray-200 rounded-lg px-4 py-2 text-gray-600 text-sm focus:outline-none"
+                                            />
+                                            <button
+                                                onClick={copyToClipboard}
+                                                className="bg-[#7A8E6B] text-white px-4 py-2 rounded-lg font-semibold hover:bg-[#6a7d5d] transition-colors flex items-center gap-2 whitespace-nowrap"
+                                            >
+                                                {copySuccess ? <FaCheck /> : <FaShareAlt />}
+                                                {copySuccess ? 'Copied' : 'Copy'}
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-4 border-t border-gray-100 flex flex-col items-center">
+                                        {!showQR ? (
+                                            <button
+                                                onClick={() => setShowQR(true)}
+                                                className="text-[#7A8E6B] font-bold hover:underline flex items-center gap-2"
+                                            >
+                                                Generate QR Code
+                                            </button>
+                                        ) : (
+                                            <div className="flex flex-col items-center space-y-4 animation-fade-in">
+                                                <div className="p-4 bg-white rounded-xl shadow-lg border border-gray-100">
+                                                    <QRCodeCanvas
+                                                        value={`${typeof window !== 'undefined' ? window.location.origin : ''}/share/${(user as any)?._id || user?.id}`}
+                                                        size={200}
+                                                        level={"H"}
+                                                    />
+                                                </div>
+                                                <button
+                                                    onClick={() => setShowQR(false)}
+                                                    className="text-gray-400 text-sm hover:text-gray-600"
+                                                >
+                                                    Hide QR Code
+                                                </button>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
 
                     {/* Edit Modal */}
                     {editSection && (
