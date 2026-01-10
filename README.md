@@ -54,7 +54,11 @@ graph LR
     B -->|Text-to-Speech| F[Audio Output]
 ```
 
+
+
+
 ---
+
 
 ## 🚀 Scalability & Architecture
 We have designed LifeDoc to handle growth from 100 to 1,000,000 users.

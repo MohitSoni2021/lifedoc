@@ -6,7 +6,7 @@ import SpeechInput from "@/app/Components/SpeechInput";
 
 export default function ActionDock() {
     return (
-        <div className="fixed bottom-6 right-6 z-50 flex items-end gap-4 print:hidden">
+        <div id="onboarding-action-dock" className="fixed bottom-6 right-6 z-50 flex items-end gap-4 print:hidden">
 
             {/* Speech Input */}
             <div className="relative group">
