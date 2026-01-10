@@ -16,6 +16,7 @@ const savedPostRoutes = require("./routes/savedPosts");
 const shareRoutes = require("./routes/share");
 const { startCronJob } = require("./jobs/newsFetcher");
 const compression = require("compression");
+const errorMiddleware = require("./middleware/errorMiddleware");
 
 const app = express();
 dotenv.config();
@@ -65,6 +66,7 @@ app.use("/api/meetings", require("./routes/meetings"));
 
 
 
+
 // 404 Handler - If no route matched
 app.use((req, res, next) => {
   console.log(`[DEBUG] 404 - Route Not Found: ${req.method} ${req.url}`);
@@ -72,10 +74,7 @@ app.use((req, res, next) => {
 });
 
 // Global Error Handler
-app.use((err, req, res, next) => {
-  console.error('[ERROR] Server Error:', err);
-  res.status(500).json({ message: "Internal Server Error", error: err.message });
-});
+app.use(errorMiddleware);
 
 const PORT = process.env.SERVER_PORT || 5000;
 
