@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { ReduxProvider } from "@/store/ReduxProvider";
-import VoiceAssistant from "@/components/VoiceAssistant";
+import ActionDock from "@/components/ActionDock";
 
 export const metadata: Metadata = {
   title: "LifeDoc - Your Health Documentation",
@@ -19,7 +19,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
       <body>
         <ReduxProvider>
           {children}
-          <VoiceAssistant />
+          <ActionDock />
         </ReduxProvider>
       </body>
     </html>
