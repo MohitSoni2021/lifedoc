@@ -60,7 +60,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
             />
 
             {/* Sidebar */}
-            <div className={`h-screen w-72 bg-white border-r border-gray-200 fixed left-0 top-0 z-50 flex flex-col font-sans transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
+            <div className={`h-screen w-72 bg-white border-r ${['plus', 'premium', 'family'].includes(user?.subscription?.plan || '') ? 'border-amber-200' : 'border-gray-200'} fixed left-0 top-0 z-50 flex flex-col font-sans transition-transform duration-300 ease-in-out md:translate-x-0 ${isOpen ? 'translate-x-0' : '-translate-x-full'
                 }`}>
                 <div className="p-8">
                     <h1 className="text-2xl font-extrabold flex items-center space-x-2 text-gray-900 tracking-tight">
