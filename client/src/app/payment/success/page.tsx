@@ -21,7 +21,6 @@ export default function PaymentSuccessPage() {
             setSeconds((prev) => {
                 if (prev <= 1) {
                     clearInterval(timer);
-                    router.push('/dashboard');
                     return 0;
                 }
                 return prev - 1;
@@ -29,7 +28,13 @@ export default function PaymentSuccessPage() {
         }, 1000);
 
         return () => clearInterval(timer);
-    }, [dispatch, router]);
+    }, [dispatch]);
+
+    useEffect(() => {
+        if (seconds === 0) {
+            router.push('/dashboard');
+        }
+    }, [seconds, router]);
 
     return (
         <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
