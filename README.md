@@ -49,6 +49,9 @@
 - **📊 Intelligent Health Analytics**: Track vitals, medications, and generate AI-powered health summaries
 - **🔒 Privacy-First Design**: End-to-end encryption with user data sovereignty
 - **🚨 Emergency Features**: SOS alerts with real-time location sharing to family members
+- **👨‍⚕️ Doctor Portal**: Verified doctors can review consultations and request admin meetings
+- **💳 Premium Subscriptions**: Stripe-powered payment system for premium features
+- **📅 Doctor Appointments**: Book and manage appointments with verified healthcare professionals
 
 ### 🎯 Target Users
 
@@ -81,6 +84,60 @@
 - **Reference Range Comparison**: Automatic flagging of out-of-range values
 - **Trend Analysis**: Track biomarkers over time with visual charts
 - **AI-Powered Insights**: Plain-language explanations of lab results
+
+### 👨‍⚕️ Doctor Portal & Professional Features
+
+#### Doctor Verification System
+- **Multi-Document Upload**: Submit medical license, ID, and degree certificates
+- **Admin Review Workflow**: Pending → Approved/Rejected status management
+- **Professional Badge Display**: Verified doctors get special badges on profile
+- **Automated Account Upgrade**: Successful verification changes user type to 'doctor'
+
+#### Consultation Review System
+- **Review Queue**: Doctors access pending consultations that users flagged for review
+- **Professional Feedback**: Add medical insights to AI-generated consultations
+- **Review Status Tracking**: Monitor consultation review history
+- **Expert Validation**: Verify or enhance AI recommendations with professional expertise
+
+#### Meeting Requests
+- **Admin Collaboration**: Doctors can request meetings with system administrators
+- **Urgency Levels**: Normal, Urgent, or Critical priority settings
+- **Meeting Scheduling**: Admin approves and sets meeting time with Google Meet link
+- **Meeting Summaries**: AI-powered summarization of meeting recordings
+- **Duration Management**: Default 60-minute meetings with customizable duration
+
+### 💳 Premium Subscription System
+
+#### Stripe Integration
+- **Secure Checkout**: Stripe-powered payment processing with PCI compliance
+- **Subscription Management**: Track active, cancelled, and expired subscriptions
+- **Webhook Integration**: Real-time payment status updates
+- **Multiple Plans**: Flexible pricing tiers for different user needs
+- **Payment History**: Complete transaction logging with invoice tracking
+- **Customer Portal**: Manage subscriptions and payment methods
+
+#### Premium Features
+- **Unlimited AI Consultations**: No rate limits for premium users
+- **Priority Support**: Faster response times for premium members
+- **Advanced Analytics**: Enhanced health insights and trend analysis
+- **Extended Storage**: Larger file upload limits for medical documents
+- **Family Plan**: Manage more family members with premium subscription
+
+### 🩺 Doctor Discovery & Appointments
+
+#### Doctor Profiles
+- **Comprehensive Listings**: Browse all verified doctors in the system
+- **Specialty Filtering**: Find doctors by medical specialty
+- **Availability Management**: Doctors set and update their availability slots
+- **Profile Information**: View doctor credentials, specializations, and ratings
+- **Appointment Booking**: Schedule appointments with available time slots
+
+#### Appointment Management
+- **Create Appointments**: Book appointments with preferred doctors
+- **View Appointments**: See all scheduled, completed, and cancelled appointments
+- **Doctor's Calendar**: Doctors view their appointment schedule
+- **Status Tracking**: Monitor appointment status (scheduled, completed, cancelled, rescheduled)
+- **Appointment History**: Access past appointments for both patients and doctors
 
 ### 👨‍👩‍👧‍👦 Family Health Management
 
@@ -217,6 +274,8 @@ graph TB
 - **Service Layer Pattern**: Business logic isolation
 - **Repository Pattern**: Data access abstraction
 - **Middleware Chain Pattern**: Modular request processing
+- **Webhook Pattern**: Real-time payment event processing from Stripe
+- **Background Jobs Pattern**: Scheduled tasks for news fetching and notifications
 
 ---
 
@@ -232,7 +291,13 @@ erDiagram
     USER ||--o{ LAB_REPORT : uploads
     USER ||--o{ DOCTOR_REPORT : has
     USER ||--o{ APPOINTMENT : schedules
+    USER ||--o{ PAYMENT : makes
+    USER ||--o{ DOCTOR_VERIFICATION : applies
+    USER ||--o{ MEETING_REQUEST : requests
+    USER ||--o{ SAVED_POST : saves
     FAMILY ||--|{ USER : contains
+    DOCTOR ||--o{ APPOINTMENT : has
+    DOCTOR ||--o{ CONSULTATION : reviews
     
     USER {
         ObjectId id PK
@@ -302,9 +367,53 @@ erDiagram
     APPOINTMENT {
         ObjectId id PK
         ObjectId userId FK
+        ObjectId doctorId FK
         String providerName
         Date date
         String status
+        String notes
+    }
+    
+    PAYMENT {
+        ObjectId id PK
+        ObjectId userId FK
+        String stripeCustomerId
+        String stripeInvoiceId
+        String stripePaymentIntentId
+        Number amount
+        String currency
+        String status
+        Date paymentDate
+    }
+    
+    DOCTOR_VERIFICATION {
+        ObjectId id PK
+        ObjectId userId FK
+        String licenseNumber
+        String specialty
+        Array documents
+        String status
+        Date appliedAt
+    }
+    
+    MEETING_REQUEST {
+        ObjectId id PK
+        ObjectId requesterId FK
+        String topic
+        String reason
+        String urgency
+        String status
+        String meetingLink
+        Date scheduledAt
+        Number duration
+        String summary
+    }
+    
+    SAVED_POST {
+        ObjectId id PK
+        ObjectId userId FK
+        ObjectId articleId FK
+        Date savedAt
     }
 ```
 
@@ -345,7 +454,87 @@ erDiagram
   suggestedMedicines: [String],
   tokenUsage: { promptTokens, completionTokens, totalTokens },
   reviewStatus: String (enum: ['none', 'pending', 'reviewed']),
+  doctorFeedback: String,
+  reviewedBy: ObjectId (ref: 'User'),
+  reviewedAt: Date,
   date: Date
+}
+```
+
+#### Payment Collection
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: 'User', indexed),
+  stripeCustomerId: String (required, indexed),
+  stripeInvoiceId: String,
+  stripePaymentIntentId: String,
+  amount: Number (required), // in cents
+  currency: String (default: 'usd'),
+  status: String (enum: ['succeeded', 'failed', 'pending'], required),
+  description: String,
+  paymentDate: Date (default: Date.now),
+  metadata: Map
+}
+```
+
+#### Doctor Verification Collection
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: 'User', indexed),
+  licenseNumber: String (required),
+  specialty: String (required),
+  documents: [{ fileUrl: String, documentType: String }], // Up to 5 files
+  status: String (enum: ['pending', 'approved', 'rejected'], default: 'pending'),
+  reviewedBy: ObjectId (ref: 'User'),
+  reviewNotes: String,
+  appliedAt: Date (default: Date.now),
+  reviewedAt: Date
+}
+```
+
+#### Meeting Request Collection
+```javascript
+{
+  _id: ObjectId,
+  requester: ObjectId (ref: 'User', required), // Doctor requesting meeting
+  topic: String (required),
+  reason: String (required),
+  urgency: String (enum: ['Normal', 'Urgent', 'Critical'], default: 'Normal'),
+  status: String (enum: ['pending', 'approved', 'rejected'], default: 'pending'),
+  meetingLink: String, // Google Meet or Zoom link
+  scheduledAt: Date,
+  duration: Number (default: 60), // Minutes
+  summary: String, // AI-generated meeting summary
+  recordingLink: String, // Optional recording URL
+  createdAt: Date (default: Date.now)
+}
+```
+
+#### Appointment Collection
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: 'User', indexed),
+  doctorId: ObjectId (ref: 'User', indexed), // Doctor user ID
+  providerName: String,
+  specialty: String,
+  appointmentDate: Date (indexed),
+  status: String (enum: ['scheduled', 'completed', 'cancelled', 'rescheduled']),
+  notes: String,
+  createdAt: Date,
+  updatedAt: Date
+}
+```
+
+#### Saved Post Collection
+```javascript
+{
+  _id: ObjectId,
+  userId: ObjectId (ref: 'User', indexed),
+  articleId: ObjectId (ref: 'Article', indexed),
+  savedAt: Date (default: Date.now)
 }
 ```
 
@@ -368,8 +557,16 @@ erDiagram
 // Optimized queries
 db.users.createIndex({ email: 1 }, { unique: true })
 db.consultations.createIndex({ user: 1, date: -1 })
+db.consultations.createIndex({ reviewStatus: 1 })
 db.labreports.createIndex({ userId: 1, reportDate: -1 })
 db.measurements.createIndex({ userId: 1, type: 1 })
+db.payments.createIndex({ userId: 1, paymentDate: -1 })
+db.payments.createIndex({ stripeCustomerId: 1 })
+db.doctorverifications.createIndex({ userId: 1, status: 1 })
+db.appointments.createIndex({ userId: 1, appointmentDate: -1 })
+db.appointments.createIndex({ doctorId: 1, appointmentDate: -1 })
+db.meetingrequests.createIndex({ requester: 1, status: 1 })
+db.savedposts.createIndex({ userId: 1, articleId: 1 }, { unique: true })
 ```
 
 ### Key Enums & Data Types
@@ -418,12 +615,34 @@ graph LR
         VS3["rejected"]
     end
     
+    subgraph PaymentStatus["💳 Payment Status"]
+        PS1["succeeded"]
+        PS2["failed"]
+        PS3["pending"]
+    end
+    
+    subgraph MeetingUrgency["🔔 Meeting Urgency"]
+        MU1["Normal"]
+        MU2["Urgent"]
+        MU3["Critical"]
+    end
+    
+    subgraph ReviewStatus["📋 Review Status"]
+        RS1["none"]
+        RS2["pending"]
+        RS3["reviewed"]
+    end
+    
     style UserTypes fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
     style ConsultationUrgency fill:#fff3e0,stroke:#e65100,stroke-width:3px,color:#000
     style MeasurementTypes fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px,color:#000
     style FamilyRoles fill:#f3e5f5,stroke:#6a1b9a,stroke-width:3px,color:#000
     style AppointmentStatus fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#000
     style VerificationStatus fill:#e0f2f1,stroke:#00695c,stroke-width:3px,color:#000
+    
+    style PaymentStatus fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
+    style MeetingUrgency fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#000
+    style ReviewStatus fill:#fce4ec,stroke:#880e4f,stroke-width:3px,color:#000
     
     style UT1 fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
     style UT2 fill:#bbdefb,stroke:#1565c0,stroke-width:2px,color:#000
@@ -449,6 +668,15 @@ graph LR
     style VS1 fill:#b2dfdb,stroke:#00695c,stroke-width:2px,color:#000
     style VS2 fill:#b2dfdb,stroke:#00695c,stroke-width:2px,color:#000
     style VS3 fill:#b2dfdb,stroke:#00695c,stroke-width:2px,color:#000
+    style PS1 fill:#fff59d,stroke:#f57f17,stroke-width:2px,color:#000
+    style PS2 fill:#fff59d,stroke:#f57f17,stroke-width:2px,color:#000
+    style PS3 fill:#fff59d,stroke:#f57f17,stroke-width:2px,color:#000
+    style MU1 fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000
+    style MU2 fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000
+    style MU3 fill:#b3e5fc,stroke:#0277bd,stroke-width:2px,color:#000
+    style RS1 fill:#f8bbd0,stroke:#880e4f,stroke-width:2px,color:#000
+    style RS2 fill:#f8bbd0,stroke:#880e4f,stroke-width:2px,color:#000
+    style RS3 fill:#f8bbd0,stroke:#880e4f,stroke-width:2px,color:#000
 ```
 
 **Enum Definitions:**
@@ -461,6 +689,9 @@ graph LR
 | **Family Roles** | `admin`, `caregiver`, `member`, `child`, `view_only` | Family access control levels |
 | **Appointment Status** | `scheduled`, `completed`, `cancelled`, `rescheduled` | Appointment lifecycle states |
 | **Verification Status** | `pending`, `approved`, `rejected` | Doctor verification workflow |
+| **Payment Status** | `succeeded`, `failed`, `pending` | Payment transaction states |
+| **Meeting Urgency** | `Normal`, `Urgent`, `Critical` | Meeting request priority levels |
+| **Review Status** | `none`, `pending`, `reviewed` | Consultation review states |
 
 ---
 
@@ -488,11 +719,16 @@ graph TD
     Features --> Labs[Upload Lab Report]
     Features --> Track[Track Vitals]
     Features --> Family[Family Management]
+    Features --> Doctors[Find Doctors]
+    Features --> Payment[Premium Subscription]
     
     Consult --> SymptomInput[Enter Symptoms]
     SymptomInput --> AIAnalysis[AI Analysis]
     AIAnalysis --> Results[View Results]
-    Results --> Dashboard
+    Results --> RequestReview{Need Review?}
+    RequestReview -->|Yes| DoctorReview[Request Doctor Review]
+    RequestReview -->|No| Dashboard
+    DoctorReview --> Dashboard
     
     Scan --> UploadRx[Upload Photo]
     UploadRx --> OCR[Vision AI Processing]
@@ -517,6 +753,18 @@ graph TD
     AddMember --> Dashboard
     ViewMember --> Dashboard
     Analyze --> Dashboard
+    
+    Doctors --> BrowseDoctors[Browse Doctors List]
+    BrowseDoctors --> ViewDoctor[View Doctor Profile]
+    ViewDoctor --> BookAppt[Book Appointment]
+    BookAppt --> Dashboard
+    
+    Payment --> ChoosePlan[Choose Subscription Plan]
+    ChoosePlan --> StripeCheckout[Stripe Checkout]
+    StripeCheckout --> PaymentSuccess{Payment Success?}
+    PaymentSuccess -->|Yes| ActivatePremium[Activate Premium]
+    PaymentSuccess -->|No| Dashboard
+    ActivatePremium --> Dashboard
     
     style AIAnalysis fill:#e3f2fd,stroke:#1565c0,stroke-width:2px,color:#000
     style OCR fill:#fff3e0,stroke:#e65100,stroke-width:2px,color:#000
@@ -862,6 +1110,8 @@ graph TD
 | **Cloudinary** | 2.8.0 | Image and document CDN storage |
 | **Nodemailer** | 7.0.12 | Email service for OTP and notifications |
 | **Twilio** | 5.11.2 | SMS alerts for emergencies |
+| **Stripe** | 20.1.2 | Payment processing and subscription management |
+| **Node-Cron** | 4.2.1 | Background job scheduling for news fetching |
 
 ### External APIs & Services
 
@@ -872,6 +1122,156 @@ graph TD
 | **OpenFDA Drug API** | Medicine information and search | Public REST API |
 | **Cloudinary** | Secure media storage and CDN | Node.js SDK |
 | **Twilio SMS API** | Emergency SOS alerts | REST API |
+| **Stripe API** | Payment processing and subscriptions | Node.js SDK |
+| **RSS Feeds** | Health news aggregation | rss-parser library |
+
+### Production Deployment Architecture
+
+LifeDoc's production infrastructure leverages modern cloud services for scalability, reliability, and global performance.
+
+```mermaid
+graph TB
+    subgraph Users["🌐 Users"]
+        WebUser["Web Browser"]
+        MobileUser["Mobile Browser"]
+        PWA["PWA Client"]
+    end
+    
+    subgraph CDN["⚡ CDN Layer"]
+        CF["Cloudflare CDN<br/>DDoS Protection<br/>SSL/TLS"]
+    end
+    
+    subgraph Frontend["🎨 Frontend - Vercel"]
+        NextJS["Next.js 16 App<br/>SSR + ISR<br/>Edge Functions"]
+        StaticAssets["Static Assets<br/>Images, CSS, JS"]
+    end
+    
+    subgraph Backend["⚙️ Backend - Railway/Render"]
+        LoadBalancer["Load Balancer<br/>Auto-Scaling"]
+        API1["Express API<br/>Instance 1"]
+        API2["Express API<br/>Instance 2"]
+        API3["Express API<br/>Instance 3"]
+        Cron["Background Jobs<br/>Node-Cron"]
+    end
+    
+    subgraph Database["💾 Database"]
+        MongoDB["MongoDB Atlas<br/>Replica Set<br/>Multi-Region"]
+    end
+    
+    subgraph FileStorage["📁 File Storage"]
+        Cloudinary["Cloudinary CDN<br/>Image Optimization<br/>Video Storage"]
+    end
+    
+    subgraph AIServices["🤖 AI Services"]
+        Gemini["Google Gemini<br/>Symptom Analysis<br/>Text Generation"]
+        OpenAIVision["OpenAI GPT-4V<br/>OCR Processing<br/>Document Analysis"]
+    end
+    
+    subgraph ExternalAPIs["🔌 External APIs"]
+        Stripe["Stripe API<br/>Payment Processing"]
+        Twilio["Twilio SMS<br/>Emergency Alerts"]
+        Email["SMTP Server<br/>Email Delivery"]
+        OpenFDA["OpenFDA API<br/>Drug Information"]
+    end
+    
+    subgraph Monitoring["📊 Monitoring & Logs"]
+        Sentry["Sentry<br/>Error Tracking"]
+        Analytics["Analytics<br/>Usage Metrics"]
+        Logs["Centralized Logs<br/>CloudWatch/Logflare"]
+    end
+    
+    WebUser --> CF
+    MobileUser --> CF
+    PWA --> CF
+    
+    CF --> NextJS
+    CF --> StaticAssets
+    
+    NextJS --> LoadBalancer
+    
+    LoadBalancer --> API1
+    LoadBalancer --> API2
+    LoadBalancer --> API3
+    
+    API1 --> MongoDB
+    API2 --> MongoDB
+    API3 --> MongoDB
+    
+    API1 --> Cloudinary
+    API2 --> Cloudinary
+    API3 --> Cloudinary
+    
+    API1 --> Gemini
+    API1 --> OpenAIVision
+    API1 --> Stripe
+    API1 --> Twilio
+    API1 --> Email
+    API1 --> OpenFDA
+    
+    API2 --> Gemini
+    API2 --> OpenAIVision
+    
+    API3 --> Gemini
+    API3 --> OpenAIVision
+    
+    Cron --> MongoDB
+    Cron --> OpenFDA
+    
+    API1 --> Sentry
+    API2 --> Sentry
+    API3 --> Sentry
+    NextJS --> Analytics
+    API1 --> Logs
+    API2 --> Logs
+    API3 --> Logs
+    
+    style Users fill:#e3f2fd,stroke:#1565c0,stroke-width:3px,color:#000
+    style CDN fill:#fff3e0,stroke:#e65100,stroke-width:3px,color:#000
+    style Frontend fill:#f3e5f5,stroke:#6a1b9a,stroke-width:3px,color:#000
+    style Backend fill:#ffebee,stroke:#c62828,stroke-width:3px,color:#000
+    style Database fill:#e8f5e9,stroke:#2e7d32,stroke-width:3px,color:#000
+    style FileStorage fill:#e0f2f1,stroke:#00695c,stroke-width:3px,color:#000
+    style AIServices fill:#fce4ec,stroke:#c2185b,stroke-width:3px,color:#000
+    style ExternalAPIs fill:#fff9c4,stroke:#f57f17,stroke-width:3px,color:#000
+    style Monitoring fill:#e1f5fe,stroke:#0277bd,stroke-width:3px,color:#000
+    
+    style CF fill:#ffe0b2,stroke:#e65100,stroke-width:2px,color:#000
+    style NextJS fill:#e1bee7,stroke:#6a1b9a,stroke-width:2px,color:#000
+    style LoadBalancer fill:#ffcdd2,stroke:#c62828,stroke-width:2px,color:#000
+    style MongoDB fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px,color:#000
+    style Cloudinary fill:#b2dfdb,stroke:#00695c,stroke-width:2px,color:#000
+    style Gemini fill:#f8bbd0,stroke:#c2185b,stroke-width:2px,color:#000
+    style OpenAIVision fill:#f8bbd0,stroke:#c2185b,stroke-width:2px,color:#000
+    style Stripe fill:#fff59d,stroke:#f57f17,stroke-width:2px,color:#000
+```
+
+### Infrastructure Components
+
+| Component | Service | Purpose | Scalability |
+|-----------|---------|---------|-------------|
+| **Frontend Hosting** | Vercel | Next.js deployment, automatic scaling, edge functions | Automatic horizontal scaling |
+| **Backend Hosting** | Railway/Render | Node.js API hosting with auto-deployment | Manual/Auto scaling up to 10 instances |
+| **Database** | MongoDB Atlas | Managed MongoDB with replica set | Vertical + Horizontal scaling |
+| **CDN** | Cloudflare | Global content delivery, DDoS protection | Global edge network |
+| **File Storage** | Cloudinary | Media storage and optimization | Unlimited storage with CDN |
+| **AI Processing** | Google Cloud / OpenAI | AI inference and processing | Pay-per-request scaling |
+| **Monitoring** | Sentry / CloudWatch | Error tracking and system metrics | Real-time monitoring |
+
+### Deployment Pipeline
+
+```
+Git Push → GitHub Actions → Build & Test → Deploy to Staging → Manual Approval → Deploy to Production → Health Check → Rollback (if failed)
+```
+
+### High Availability Features
+
+- **Multi-Region Database**: MongoDB Atlas replica set across 3 availability zones
+- **Auto-Scaling**: Backend automatically scales based on CPU and memory usage
+- **Load Balancing**: Traffic distributed across multiple API instances
+- **CDN Caching**: Static assets cached at edge locations globally
+- **Health Checks**: Continuous monitoring with automatic instance restart
+- **Backup Strategy**: Daily automated backups with 30-day retention
+- **Disaster Recovery**: Point-in-time recovery within 24 hours
 
 ---
 
@@ -978,9 +1378,11 @@ X-RateLimit-Reset: 1641024000
 | POST | `/auth/signup` | Create new account & send OTP | ❌ |
 | POST | `/auth/verify-otp` | Verify OTP & activate account | ❌ |
 | POST | `/auth/login` | Login with credentials | ❌ |
+| POST | `/auth/forgot-password` | Request password reset | ❌ |
+| POST | `/auth/reset-password` | Reset password with token | ❌ |
 | GET | `/auth/profile` | Get current user profile | ✅ |
 | PUT | `/auth/profile` | Update user profile | ✅ |
-| PUT | `/auth/sos-contacts` | Update emergency contacts | ✅ |
+| POST | `/auth/profile/photo` | Upload profile photo | ✅ |
 
 **Example - Sign Up:**
 ```json
@@ -1031,6 +1433,9 @@ POST /auth/login
 | POST | `/ai/analyze-prescription` | Extract prescription data | ✅ | 10/15min |
 | POST | `/ai/analyze-lab-report` | Parse lab report | ✅ | 10/15min |
 | POST | `/ai/summerizer` | Summarize diary entry | ✅ | 20/15min |
+| POST | `/ai/generate-questions` | Generate health questions | ✅ | 20/15min |
+| POST | `/ai/analyze-lifestyle` | Analyze lifestyle factors | ✅ | 20/15min |
+| POST | `/ai/guide` | Get health guidance | ✅ | 20/15min |
 
 **Example - Symptom Analysis:**
 ```json
@@ -1320,7 +1725,349 @@ GET /reference/medicines/search?q=metformin&limit=10
 
 ---
 
-### 🔬 Doctor Portal
+### 🩺 Doctor Verification
+
+| Method | Endpoint | Description | Auth | Content-Type |
+|--------|----------|-------------|------|-------------|
+| POST | `/doctor-verification/apply` | Apply for verification | ✅ | multipart/form-data |
+| GET | `/doctor-verification/status` | Get application status | ✅ | - |
+| GET | `/doctor-verification/admin/pending` | Get pending applications | ✅ (admin) | - |
+| PUT | `/doctor-verification/admin/review/:id` | Review application | ✅ (admin) | - |
+
+**Example - Apply:**
+```http
+POST /doctor-verification/apply
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+
+licenseNumber: "MD123456"
+specialty: "Cardiology"
+documents: [file1.pdf, file2.pdf, file3.pdf] // Up to 5 files
+
+// Response
+{
+  "message": "Application submitted successfully",
+  "application": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "status": "pending",
+    "appliedAt": "2026-01-10T12:00:00Z"
+  }
+}
+```
+
+---
+
+### 👨‍⚕️ Doctors & Appointments
+
+| Method | Endpoint | Description | Auth | Role |
+|--------|----------|-------------|------|------|
+| GET | `/doctors` | Get all verified doctors | ✅ | any |
+| GET | `/doctors/:id` | Get doctor profile | ✅ | any |
+| PUT | `/doctors/availability` | Update availability | ✅ | doctor |
+| GET | `/doctors/:id/slots` | Get available slots | ✅ | any |
+| POST | `/appointments` | Book appointment | ✅ | user |
+| GET | `/appointments` | Get user appointments | ✅ | user |
+| GET | `/appointments/doctor-appointments` | Get doctor's appointments | ✅ | doctor |
+| DELETE | `/appointments/:id` | Cancel appointment | ✅ | user/doctor |
+
+**Example - Get Doctors:**
+```json
+// Response
+GET /doctors
+{
+  "doctors": [
+    {
+      "id": "507f1f77bcf86cd799439011",
+      "name": "Dr. Sarah Johnson",
+      "email": "sarah@hospital.com",
+      "specialty": "Cardiology",
+      "type": "doctor",
+      "isVerified": true,
+      "profile": {
+        "qualifications": "MD, MBBS",
+        "experience": "15 years"
+      },
+      "availability": {
+        "monday": ["09:00-12:00", "14:00-17:00"],
+        "tuesday": ["09:00-12:00", "14:00-17:00"],
+        "friday": ["09:00-13:00"]
+      }
+    }
+  ]
+}
+```
+
+**Example - Book Appointment:**
+```json
+// Request
+POST /appointments
+Authorization: Bearer <token>
+{
+  "doctorId": "507f1f77bcf86cd799439011",
+  "providerName": "Dr. Sarah Johnson",
+  "specialty": "Cardiology",
+  "appointmentDate": "2026-01-15T10:00:00Z",
+  "notes": "Follow-up consultation"
+}
+
+// Response
+{
+  "message": "Appointment booked successfully",
+  "appointment": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "status": "scheduled",
+    "appointmentDate": "2026-01-15T10:00:00Z"
+  }
+}
+```
+
+---
+
+### 🤝 Meeting Requests (Doctor-Admin Collaboration)
+
+| Method | Endpoint | Description | Auth | Role |
+|--------|----------|-------------|------|------|
+| POST | `/meetings/request` | Request admin meeting | ✅ | doctor |
+| GET | `/meetings/pending` | Get pending requests | ✅ | admin |
+| PUT | `/meetings/approve/:id` | Approve/schedule meeting | ✅ | admin |
+| GET | `/meetings/upcoming` | Get upcoming meetings | ✅ | doctor |
+| POST | `/meetings/summarize/:id` | AI meeting summary | ✅ | admin |
+
+**Example - Request Meeting:**
+```json
+// Request
+POST /meetings/request
+Authorization: Bearer <token> // Doctor token
+{
+  "topic": "New Treatment Protocol Discussion",
+  "reason": "Need guidance on implementing new diabetes treatment guidelines",
+  "urgency": "Urgent"
+}
+
+// Response
+{
+  "message": "Meeting request submitted successfully",
+  "request": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "status": "pending",
+    "urgency": "Urgent",
+    "createdAt": "2026-01-10T12:00:00Z"
+  }
+}
+```
+
+**Example - Approve Meeting:**
+```json
+// Request
+PUT /meetings/approve/:id
+Authorization: Bearer <token> // Admin token
+{
+  "meetingLink": "https://meet.google.com/abc-defg-hij",
+  "scheduledAt": "2026-01-12T14:00:00Z",
+  "duration": 60
+}
+
+// Response
+{
+  "message": "Meeting approved and scheduled",
+  "meeting": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "status": "approved",
+    "meetingLink": "https://meet.google.com/abc-defg-hij",
+    "scheduledAt": "2026-01-12T14:00:00Z"
+  }
+}
+```
+
+---
+
+### 📋 Consultation Reviews
+
+| Method | Endpoint | Description | Auth | Role |
+|--------|----------|-------------|------|------|
+| PUT | `/consultation/:id/request-review` | Request doctor review | ✅ | user |
+| GET | `/consultation/history` | Get consultation history | ✅ | user |
+| GET | `/consultation/pending-reviews` | Get pending reviews | ✅ | doctor |
+| PUT | `/consultation/:id/review` | Submit professional review | ✅ | doctor |
+
+**Example - Request Review:**
+```json
+// Request
+PUT /consultation/:id/request-review
+Authorization: Bearer <token>
+{
+  "notes": "Would like a doctor to verify this assessment"
+}
+
+// Response
+{
+  "message": "Review requested successfully",
+  "consultation": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "reviewStatus": "pending"
+  }
+}
+```
+
+**Example - Doctor Submit Review:**
+```json
+// Request
+PUT /consultation/:id/review
+Authorization: Bearer <token> // Doctor token
+{
+  "doctorFeedback": "AI assessment is accurate. Continue with recommended treatment and monitor symptoms closely.",
+  "additionalRecommendations": [
+    "Follow up if symptoms persist beyond 48 hours",
+    "Consider blood pressure monitoring"
+  ]
+}
+
+// Response
+{
+  "message": "Review submitted successfully",
+  "consultation": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "reviewStatus": "reviewed",
+    "reviewedBy": "507f1f77bcf86cd799439011",
+    "reviewedAt": "2026-01-10T14:30:00Z"
+  }
+}
+```
+
+---
+
+### 💳 Premium Subscriptions
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| POST | `/subscription/create-checkout-session` | Create Stripe checkout | ✅ |
+| GET | `/subscription/status` | Get subscription status | ✅ |
+| POST | `/subscription/webhook` | Stripe webhook (public) | ❌ |
+
+**Example - Create Checkout:**
+```json
+// Request
+POST /subscription/create-checkout-session
+Authorization: Bearer <token>
+{
+  "priceId": "price_1234567890",
+  "successUrl": "https://lifedoc.app/dashboard?success=true",
+  "cancelUrl": "https://lifedoc.app/pricing"
+}
+
+// Response
+{
+  "sessionId": "cs_test_1234567890abcdef",
+  "url": "https://checkout.stripe.com/pay/cs_test_1234567890abcdef"
+}
+```
+
+**Example - Get Status:**
+```json
+// Response
+GET /subscription/status
+{
+  "hasActiveSubscription": true,
+  "subscription": {
+    "id": "sub_1234567890",
+    "customerId": "cus_1234567890",
+    "status": "active",
+    "currentPeriodStart": "2026-01-10T00:00:00Z",
+    "currentPeriodEnd": "2026-02-10T00:00:00Z",
+    "cancelAtPeriodEnd": false,
+    "plan": {
+      "name": "Premium Monthly",
+      "amount": 999, // $9.99 in cents
+      "currency": "usd",
+      "interval": "month"
+    }
+  },
+  "payments": [
+    {
+      "amount": 999,
+      "status": "succeeded",
+      "paymentDate": "2026-01-10T10:15:00Z"
+    }
+  ]
+}
+```
+
+---
+
+### 📰 Health News & Saved Posts
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/news` | Get health news articles | ✅ |
+| POST | `/saved-posts` | Save article | ✅ |
+| DELETE | `/saved-posts/:articleId` | Unsave article | ✅ |
+| GET | `/saved-posts` | Get saved articles | ✅ |
+| GET | `/saved-posts/ids` | Get saved article IDs | ✅ |
+
+**Example - Save Post:**
+```json
+// Request
+POST /saved-posts
+Authorization: Bearer <token>
+{
+  "articleId": "65a1b2c3d4e5f6g7h8i9j0k1"
+}
+
+// Response
+{
+  "message": "Article saved successfully",
+  "savedPost": {
+    "id": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "userId": "507f1f77bcf86cd799439011",
+    "articleId": "65a1b2c3d4e5f6g7h8i9j0k1",
+    "savedAt": "2026-01-10T12:00:00Z"
+  }
+}
+```
+
+---
+
+### 🔗 Public Health Profile Sharing
+
+| Method | Endpoint | Description | Auth |
+|--------|----------|-------------|------|
+| GET | `/share/:userId` | Get shareable health profile | ❌ |
+
+**Example:**
+```json
+// Response
+GET /share/507f1f77bcf86cd799439011
+{
+  "user": {
+    "name": "John Doe",
+    "age": 35,
+    "profile": {
+      "gender": "Male",
+      "bloodGroup": "O+",
+      "chronicConditions": ["Type 2 Diabetes"],
+      "allergies": ["Penicillin"]
+    }
+  },
+  "recentMeasurements": [
+    {
+      "type": "blood_pressure",
+      "value": {"systolic": 120, "diastolic": 80},
+      "timestamp": "2026-01-10T08:00:00Z"
+    }
+  ],
+  "emergencyContacts": [
+    {
+      "name": "Jane Doe",
+      "relationship": "Spouse",
+      "phone": "+1234567890"
+    }
+  ]
+}
+```
+
+---
+
+### 🔬 Doctor Portal (Legacy - Being Deprecated)
 
 | Method | Endpoint | Description | Auth | Role |
 |--------|----------|-------------|------|------|
@@ -1329,21 +2076,11 @@ GET /reference/medicines/search?q=metformin&limit=10
 | POST | `/doctor/consultations/:id/review` | Submit review | ✅ | doctor |
 | POST | `/doctor/meetings/request` | Request admin meeting | ✅ | doctor |
 
-**Example - Review Consultation:**
-```json
-// Request
-POST /doctor/consultations/:id/review
-Authorization: Bearer <token>
-{
-  "feedback": "AI assessment accurate. Monitor symptoms.",
-  "recommendations": ["Follow-up if symptoms worsen"],
-  "status": "reviewed"
-}
-```
+> **Note**: These endpoints are being moved to `/consultation/*` and `/meetings/*` routes. Use the new routes for new integrations.
 
 ---
 
-### 🩺 Doctor Verification
+### 🩺 Doctor Verification (Old Format - Keep for Reference)
 
 | Method | Endpoint | Description | Auth | Content-Type |
 |--------|----------|-------------|------|-------------|
@@ -1370,23 +2107,45 @@ licenseNumber: "MD123456"
 
 | Method | Endpoint | Description | Auth | Role |
 |--------|----------|-------------|------|------|
-| GET | `/admin/users` | Get all users | ✅ | admin |
-| GET | `/admin/users/:id` | Get user details | ✅ | admin |
-| DELETE | `/admin/users/:id` | Delete user account | ✅ | admin |
 | GET | `/admin/stats` | Get system statistics | ✅ | admin |
-| GET | `/admin/ai-stats` | Get AI usage statistics | ✅ | admin |
-| GET | `/admin/doctor-verifications` | Get verification requests | ✅ | admin |
-| PUT | `/admin/doctor-verifications/:id` | Approve/Reject verification | ✅ | admin |
-| POST | `/admin/medicines` | Add medicine to database | ✅ | admin |
+| GET | `/admin/users` | Get all users | ✅ | admin |
+| DELETE | `/admin/users/:id` | Delete user account | ✅ | admin |
+| GET | `/admin/medicines` | Get medicine database | ✅ | admin |
+| POST | `/admin/medicines` | Add medicine | ✅ | admin |
 | PUT | `/admin/medicines/:id` | Update medicine | ✅ | admin |
 | DELETE | `/admin/medicines/:id` | Delete medicine | ✅ | admin |
-| GET | `/admin/meetings` | Get meeting requests | ✅ | admin |
-| PUT | `/admin/meetings/:id` | Respond to meeting request | ✅ | admin |
+| GET | `/admin/lab-tests` | Get lab tests database | ✅ | admin |
+| POST | `/admin/lab-tests` | Add lab test | ✅ | admin |
+| PUT | `/admin/lab-tests/:id` | Update lab test | ✅ | admin |
+| GET | `/admin/ai/stats` | Get AI usage statistics | ✅ | admin |
+| GET | `/admin/ai/logs` | Get AI consultation logs | ✅ | admin |
+
+**Example - System Stats:**
+```json
+// Response
+GET /admin/stats
+{
+  "totalUsers": 1250,
+  "activeUsers": 890,
+  "totalDoctors": 45,
+  "verifiedDoctors": 38,
+  "pendingVerifications": 7,
+  "totalConsultations": 3450,
+  "consultationsThisMonth": 456,
+  "totalLabReports": 890,
+  "totalPrescriptions": 1200,
+  "activeSubscriptions": 320,
+  "totalRevenue": 156780.00,
+  "revenueThisMonth": 15600.00,
+  "newUsersThisWeek": 67,
+  "averageSessionDuration": "12m 34s"
+}
+```
 
 **Example - AI Stats:**
 ```json
 // Response
-GET /admin/ai-stats
+GET /admin/ai/stats
 {
   "totalConsultations": 1250,
   "totalTokensUsed": 450000,
@@ -1396,7 +2155,16 @@ GET /admin/ai-stats
     "Low": 500,
     "Medium": 600,
     "High": 150
-  }
+  },
+  "consultationsByMonth": {
+    "December 2025": 380,
+    "January 2026": 456
+  },
+  "topSymptoms": [
+    {"symptom": "headache", "count": 234},
+    {"symptom": "fever", "count": 189},
+    {"symptom": "fatigue", "count": 167}
+  ]
 }
 ```
 
@@ -1406,10 +2174,26 @@ GET /admin/ai-stats
 
 | Method | Endpoint | Description | Auth | Max Size |
 |--------|----------|-------------|------|----------|
-| POST | `/upload/image` | Upload image (JPEG, PNG, GIF) | ✅ | 10MB |
-| POST | `/upload/document` | Upload document (PDF) | ✅ | 10MB |
-| DELETE | `/upload/:publicId` | Delete file | ✅ | - |
+| POST | `/upload` | Upload file to Cloudinary | ✅ | 50MB |
 
+**Example:**
+```http
+POST /upload
+Content-Type: multipart/form-data
+Authorization: Bearer <token>
+
+image: <File>
+
+// Response
+{
+  "message": "File uploaded successfully",
+  "url": "https://res.cloudinary.com/.../image.jpg",
+  "publicId": "lifedoc/1234567890",
+  "format": "jpg",
+  "width": 1920,
+  "height": 1080
+}
+```
 ---
 
 ## Query Parameters
@@ -1927,6 +2711,14 @@ TWILIO_PHONE_NUMBER=+1234567890
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
 CLOUDINARY_API_SECRET=your_api_secret
+
+# Payment (Stripe)
+STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
+STRIPE_PUBLISHABLE_KEY=pk_test_your_stripe_publishable_key
+STRIPE_WEBHOOK_SECRET=whsec_your_webhook_secret
+
+# Client URL (for CORS and redirects)
+CLIENT_URL=http://localhost:3000
 ```
 
 Create `.env.local` file in `client/` directory:
@@ -1959,6 +2751,13 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 3. Purchase phone number
 4. Add credentials to `.env`
 
+#### Stripe (for Payments)
+1. Sign up at [Stripe](https://stripe.com/)
+2. Get API keys from Dashboard
+3. Add secret key and publishable key to `.env`
+4. Set up webhook endpoint for subscription events
+5. Add webhook secret to `.env`
+
 ---
 
 ## 🌐 Environment Variables
@@ -1983,6 +2782,10 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 | `CLOUDINARY_CLOUD_NAME` | Yes | Cloudinary cloud name | `your_cloud` |
 | `CLOUDINARY_API_KEY` | Yes | Cloudinary API key | `123456789` |
 | `CLOUDINARY_API_SECRET` | Yes | Cloudinary secret | `your_secret` |
+| `STRIPE_SECRET_KEY` | Yes | Stripe secret key | `sk_test_...` |
+| `STRIPE_PUBLISHABLE_KEY` | Yes | Stripe publishable key | `pk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | Yes | Stripe webhook secret | `whsec_...` |
+| `CLIENT_URL` | Yes | Frontend URL for CORS | `http://localhost:3000` |
 
 ### Frontend Variables (`client/.env.local`)
 
@@ -2005,19 +2808,30 @@ echo ".env.local" >> client/.gitignore
 
 ## 🗺️ Roadmap
 
-### ✅ Completed (Phase 1)
+### ✅ Completed (Phase 1 - Completed January 2026)
 
 - [x] User authentication with OTP verification
-- [x] AI-powered symptom analysis (Gemini)
+- [x] AI-powered symptom analysis (Gemini 1.5 Flash)
 - [x] Prescription digitization (Vision AI)
-- [x] Lab report analysis
-- [x] Family health management
-- [x] Vital signs tracking
+- [x] Lab report analysis and parsing
+- [x] Family health management with role-based access
+- [x] Vital signs tracking (BP, glucose, heart rate, weight, temp, SpO2)
 - [x] Health diary with AI summarization
-- [x] Doctor verification system
-- [x] Emergency SOS alerts
+- [x] Doctor verification system with document upload
+- [x] Emergency SOS alerts with SMS integration
 - [x] Medicine and lab test reference database
-- [x] Health news aggregation
+- [x] Health news aggregation with RSS feeds
+- [x] Admin dashboard with system statistics
+- [x] Doctor portal with consultation review system
+- [x] Meeting request system (doctor-admin collaboration)
+- [x] Premium subscription system with Stripe integration
+- [x] Payment webhook processing
+- [x] Doctor discovery and appointment booking
+- [x] Saved articles/posts functionality
+- [x] Public health profile sharing
+- [x] Background jobs for news fetching
+- [x] Comprehensive API documentation
+- [x] Rate limiting and security measures
 
 ### 🚧 In Progress (Phase 2 - Q1 2026)
 
