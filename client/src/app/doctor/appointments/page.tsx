@@ -18,6 +18,7 @@ interface Appointment {
     userId: Patient;
     date: string;
     time: string;
+    mode: 'Online' | 'Offline';
     status: 'Scheduled' | 'Completed' | 'Cancelled';
     notes?: string;
 }
@@ -94,6 +95,7 @@ const DoctorAppointmentsPage = () => {
                                     <tr>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Patient</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Date & Time</th>
+                                        <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Mode</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Status</th>
                                         <th className="px-6 py-4 text-left text-xs font-bold text-gray-500 uppercase tracking-wider">Notes</th>
                                     </tr>
@@ -129,6 +131,14 @@ const DoctorAppointmentsPage = () => {
                                                         {app.time}
                                                     </span>
                                                 </div>
+                                            </td>
+                                            <td className="px-6 py-4 whitespace-nowrap">
+                                                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${app.mode === 'Online' ? 'bg-cyan-50 text-cyan-700' : 'bg-orange-50 text-orange-700'
+                                                    }`}>
+                                                    <span className={`w-2 h-2 rounded-full ${app.mode === 'Online' ? 'bg-cyan-500' : 'bg-orange-500'
+                                                        }`}></span>
+                                                    {app.mode}
+                                                </span>
                                             </td>
                                             <td className="px-6 py-4 whitespace-nowrap">
                                                 <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-bold ${getStatusColor(app.status)}`}>

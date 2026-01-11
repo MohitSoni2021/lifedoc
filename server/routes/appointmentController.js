@@ -2,7 +2,7 @@ const Appointment = require('../models/Appointment');
 
 exports.createAppointment = async (req, res) => {
     try {
-        const { providerName, type, date, time, notes, doctorId } = req.body;
+        const { providerName, type, date, time, notes, doctorId, mode } = req.body;
         const userId = req.user.id;
 
         // Validate Date and Time
@@ -20,6 +20,7 @@ exports.createAppointment = async (req, res) => {
             type,
             date,
             time,
+            mode: mode || 'Online',
             notes
         });
 

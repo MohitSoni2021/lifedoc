@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { FaHome, FaHeartbeat, FaBookMedical, FaFileMedical, FaUserMd, FaSignOutAlt, FaMicrophone, FaCamera, FaUser, FaLightbulb, FaCalendarAlt, FaUsers, FaBell, FaHistory, FaStar } from 'react-icons/fa';
+import { FaHome, FaHeartbeat, FaBookMedical, FaFileMedical, FaUserMd, FaSignOutAlt, FaMicrophone, FaCamera, FaUser, FaLightbulb, FaCalendarAlt, FaUsers, FaBell, FaHistory, FaStar, FaCog } from 'react-icons/fa';
 import { useDispatch, useSelector } from 'react-redux';
 import { useRouter } from 'next/navigation';
 import { logoutUser } from '@/store/slices/authSlice';
@@ -46,6 +46,7 @@ const Sidebar = ({ isOpen = false, onClose }: SidebarProps) => {
     if (user?.type === 'doctor') {
         navItems.unshift({ name: 'Doctor Dashboard', path: '/doctor/dashboard', icon: FaUserMd });
         navItems.push({ name: 'Patient Appointments', path: '/doctor/appointments', icon: FaCalendarAlt });
+        navItems.push({ name: 'Setup Details', path: '/doctor/setup', icon: FaCog });
     }
 
 

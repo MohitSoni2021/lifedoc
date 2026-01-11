@@ -7,4 +7,8 @@ const authMiddleware = require('../middleware/authMiddleware'); // Corrected imp
 // Using authMiddleware to ensure only logged-in users can see doctors list
 router.get('/', authMiddleware, doctorController.getAllDoctors);
 
+router.put('/availability', authMiddleware, doctorController.updateAvailability);
+router.get('/:id/slots', authMiddleware, doctorController.getDoctorSlots);
+router.get('/:id', authMiddleware, doctorController.getDoctorById);
+
 module.exports = router;

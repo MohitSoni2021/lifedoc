@@ -28,6 +28,11 @@ const appointmentSchema = new mongoose.Schema({
         type: String,
         required: true
     },
+    mode: {
+        type: String,
+        enum: ['Online', 'Offline'],
+        default: 'Online'
+    },
     notes: {
         type: String
     },

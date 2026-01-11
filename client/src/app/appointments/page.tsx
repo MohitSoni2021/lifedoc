@@ -7,6 +7,7 @@ import { RootState } from '@/store/store';
 import { FaCalendarAlt, FaUserMd, FaFlask, FaPlus, FaTimes, FaTrash, FaCheckCircle, FaFileUpload } from 'react-icons/fa';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import BookingModal from '@/components/BookingModal';
 
 interface Appointment {
     _id: string;
@@ -23,13 +24,8 @@ const AppointmentsPage = () => {
     const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
-    const [formData, setFormData] = useState({
-        providerName: '',
-        type: 'Doctor',
-        date: '',
-        time: '',
-        notes: ''
-    });
+    const [selectedDoctorId, setSelectedDoctorId] = useState<string | undefined>(undefined);
+    const [selectedDoctorName, setSelectedDoctorName] = useState<string | undefined>(undefined);
 
     // Use port 5000 as per previous fix
     const API_URL = `${process.env.NEXT_PUBLIC_API_URL}/appointments`;
@@ -45,14 +41,12 @@ const AppointmentsPage = () => {
         const doctorName = searchParams.get('doctorName');
 
         if (doctorId && doctorName) {
-            setFormData(prev => ({
-                ...prev,
-                providerName: decodeURIComponent(doctorName),
-                type: 'Doctor'
-            }));
+            setSelectedDoctorId(doctorId);
+            setSelectedDoctorName(decodeURIComponent(doctorName));
             setShowModal(true);
         }
     }, [token, searchParams]);
+
 
     const fetchAppointments = async () => {
         try {
@@ -69,32 +63,12 @@ const AppointmentsPage = () => {
         }
     };
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
-
-        // Validate future date/time
-        const selectedDateTime = new Date(`${formData.date}T${formData.time}`);
-        if (selectedDateTime <= new Date()) {
-            alert('Please select a future date and time for your appointment.');
-            return;
-        }
-
-        const doctorId = searchParams.get('doctorId');
-        try {
-            const payload = { ...formData, doctorId: doctorId || undefined };
-            const response = await axios.post(API_URL, payload, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
-            if (response.data.success) {
-                setAppointments([...appointments, response.data.data]);
-                setShowModal(false);
-                setFormData({ providerName: '', type: 'Doctor', date: '', time: '', notes: '' });
-                alert('Appointment booked successfully!');
-            }
-        } catch (error: any) {
-            console.error('Error creating appointment:', error);
-            alert(error.response?.data?.message || 'Failed to book appointment');
-        }
+    const handleBookingSuccess = (newAppointment: Appointment) => {
+        setAppointments([...appointments, newAppointment]);
+        alert('Appointment booked successfully!');
+        // Reset selection
+        setSelectedDoctorId(undefined);
+        setSelectedDoctorName(undefined);
     };
 
     const handleStatusUpdate = async (id: string, status: string) => {
@@ -220,82 +194,12 @@ const AppointmentsPage = () => {
 
                 {/* Modal */}
                 {showModal && (
-                    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4 backdrop-blur-sm">
-                        <div className="bg-white rounded-2xl w-full max-w-md p-8 shadow-2xl animate-fade-in-up">
-                            <div className="flex justify-between items-center mb-6">
-                                <h2 className="text-2xl font-bold text-gray-900">Book Appointment</h2>
-                                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
-                                    <FaTimes className="text-xl" />
-                                </button>
-                            </div>
-
-                            <form onSubmit={handleSubmit} className="space-y-4">
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Provider Name</label>
-                                    <input
-                                        type="text"
-                                        required
-                                        placeholder="Dr. Smith or City Lab"
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#3AAFA9] focus:ring-2 focus:ring-[#3AAFA9]/20 outline-none transition-all"
-                                        value={formData.providerName}
-                                        onChange={(e) => setFormData({ ...formData, providerName: e.target.value })}
-                                    />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Type</label>
-                                        <select
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#3AAFA9] focus:ring-2 focus:ring-[#3AAFA9]/20 outline-none transition-all"
-                                            value={formData.type}
-                                            onChange={(e) => setFormData({ ...formData, type: e.target.value })}
-                                        >
-                                            <option value="Doctor">Doctor</option>
-                                            <option value="Lab">Lab</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-bold text-gray-700 mb-1">Time</label>
-                                        <input
-                                            type="time"
-                                            required
-                                            className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#3AAFA9] focus:ring-2 focus:ring-[#3AAFA9]/20 outline-none transition-all"
-                                            value={formData.time}
-                                            onChange={(e) => setFormData({ ...formData, time: e.target.value })}
-                                        />
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Date</label>
-                                    <input
-                                        type="date"
-                                        required
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#3AAFA9] focus:ring-2 focus:ring-[#3AAFA9]/20 outline-none transition-all"
-                                        value={formData.date}
-                                        onChange={(e) => setFormData({ ...formData, date: e.target.value })}
-                                    />
-                                </div>
-
-                                <div>
-                                    <label className="block text-sm font-bold text-gray-700 mb-1">Notes (Optional)</label>
-                                    <textarea
-                                        rows={3}
-                                        className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-[#3AAFA9] focus:ring-2 focus:ring-[#3AAFA9]/20 outline-none transition-all resize-none"
-                                        value={formData.notes}
-                                        onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                                    />
-                                </div>
-
-                                <button
-                                    type="submit"
-                                    className="w-full bg-[#3AAFA9] text-white py-3 rounded-xl font-bold shadow-lg hover:bg-[#2B7A78] transition-colors mt-2"
-                                >
-                                    Confirm Booking
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                    <BookingModal
+                        onClose={() => setShowModal(false)}
+                        onSuccess={handleBookingSuccess}
+                        prefilledDoctorId={selectedDoctorId}
+                        prefilledDoctorName={selectedDoctorName}
+                    />
                 )}
             </div>
         </DashboardLayout >

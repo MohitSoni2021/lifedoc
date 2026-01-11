@@ -13,7 +13,11 @@ interface Doctor {
     profileImage?: string;
     profile?: {
         gender?: string;
-        specialization?: string; // Assuming you might have this or add it later
+        specialization?: string;
+    };
+    availability?: {
+        days: string[];
+        workingHours: { start: string; end: string };
     };
 }
 
@@ -85,7 +89,7 @@ const DoctorsPage = () => {
                         {doctors.map((doctor) => (
                             <div
                                 key={doctor._id}
-                                className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 overflow-hidden group"
+                                className="bg-white rounded-2xl shadow-sm hover:shadow-md transition-shadow duration-300 border border-gray-100 overflow-hidden group flex flex-col"
                             >
                                 <div className="aspect-w-16 aspect-h-9 bg-gray-100 relative h-48 flex items-center justify-center overflow-hidden">
                                     {doctor.profileImage ? (
@@ -102,7 +106,7 @@ const DoctorsPage = () => {
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                                 </div>
 
-                                <div className="p-5">
+                                <div className="p-5 flex-1 flex flex-col">
                                     <div className="mb-4">
                                         <h3 className="text-xl font-bold text-gray-900 group-hover:text-emerald-600 transition-colors truncate">
                                             {doctor.name}
@@ -112,23 +116,40 @@ const DoctorsPage = () => {
                                         </p>
                                     </div>
 
-                                    <div className="flex items-center text-gray-500 text-sm mb-4">
-                                        <FaEnvelope className="mr-2 text-gray-400" />
-                                        <span className="truncate">{doctor.email}</span>
+                                    <div className="space-y-2 mb-6 flex-1">
+                                        <div className="flex items-center text-gray-500 text-sm">
+                                            <FaEnvelope className="mr-2 text-gray-400 min-w-[16px]" />
+                                            <span className="truncate">{doctor.email}</span>
+                                        </div>
+                                        {doctor.availability?.days && doctor.availability.days.length > 0 && (
+                                            <div className="flex items-start text-gray-500 text-sm">
+                                                <FaCalendarCheck className="mr-2 text-gray-400 mt-0.5 min-w-[16px]" />
+                                                <span className="text-xs">{doctor.availability.days.join(', ')}</span>
+                                            </div>
+                                        )}
+                                        {doctor.availability?.workingHours && (
+                                            <div className="flex items-center text-gray-500 text-sm">
+                                                <span className="pl-6 text-xs text-gray-400">
+                                                    {doctor.availability.workingHours.start} - {doctor.availability.workingHours.end}
+                                                </span>
+                                            </div>
+                                        )}
                                     </div>
 
                                     <Link
-                                        href={`/appointments?doctorId=${doctor._id}&doctorName=${encodeURIComponent(doctor.name)}`}
+                                        href={`/doctors/${doctor._id}`}
                                         className="flex items-center justify-center w-full px-4 py-2.5 bg-gray-900 text-white text-sm font-semibold rounded-xl hover:bg-emerald-600 transition-colors duration-300 group-hover:shadow-lg group-hover:shadow-emerald-500/20"
                                     >
                                         <FaCalendarCheck className="mr-2" />
-                                        Book Appointment
+                                        View Details & Book
                                     </Link>
                                 </div>
                             </div>
                         ))}
                     </div>
                 )}
+
+
             </div>
         </DashboardLayout>
     );
