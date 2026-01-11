@@ -73,10 +73,17 @@ The Level-0 DFD shows the LifeDoc system as a single process with external entit
 | 14 | Family Member | Health Queries | Request to view family member health data |
 | 15 | Doctor | Verification Application | License document, ID, degree, specialty, license number |
 | 16 | Doctor | Consultation Review | Feedback, recommendations, review status |
-| 17 | Doctor | Meeting Request | Meeting reason, preferred dates, contact details |
-| 18 | Admin | Doctor Approval | Approve/reject verification with notes |
-| 19 | Admin | Medicine Management | Add/update/delete medicine records |
-| 20 | Admin | User Management | Delete user accounts, view user details |
+| 17 | Doctor | Meeting Request | Topic, reason, urgency level, preferred dates |
+| 18 | Doctor | Consultation Review Request | Access to pending consultation reviews |
+| 19 | Doctor | Review Feedback | Professional medical feedback on AI consultations |
+| 20 | Patient | Appointment Booking | Doctor ID, date, time, reason for visit |
+| 21 | Patient | Subscription Payment | Plan selection, billing information |
+| 22 | Patient | Save Article | Article ID to save for later reading |
+| 23 | Admin | Doctor Approval | Approve/reject verification with notes |
+| 24 | Admin | Meeting Response | Approve meeting with link or reject with notes |
+| 25 | Admin | Medicine Management | Add/update/delete medicine records |
+| 26 | Admin | User Management | Delete user accounts, view user details |
+| 27 | Stripe | Webhook Events | Payment status, subscription updates |
 
 ---
 
@@ -104,8 +111,15 @@ The Level-0 DFD shows the LifeDoc system as a single process with external entit
 | 18 | Admin | AI Usage Report | Token consumption, estimated costs, urgency breakdown |
 | 19 | Admin | User List | All registered users with details |
 | 20 | Admin | Verification Requests | Pending doctor verification applications |
-| 21 | All Users | Error Messages | Validation errors, system errors |
-| 22 | All Users | Success Notifications | Operation confirmations |
+| 21 | Patient | Payment Confirmation | Invoice, receipt, subscription status |
+| 22 | Patient | Appointment Confirmation | Appointment details, doctor info, calendar invite |
+| 23 | Patient | Saved Posts List | All saved health articles |
+| 24 | Patient | Professional Review | Doctor's feedback on consultation |
+| 25 | Doctor | Pending Reviews Queue | Consultations awaiting professional review |
+| 26 | Doctor | Appointment Notifications | New appointment bookings |
+| 27 | Doctor | Meeting Response | Admin approval with meeting link or rejection |
+| 28 | All Users | Error Messages | Validation errors, system errors |
+| 29 | All Users | Success Notifications | Operation confirmations |
 
 ---
 
@@ -120,15 +134,16 @@ The Level-0 DFD shows the LifeDoc system as a single process with external entit
 | **D5: Measurements** | Vital sign readings | ID, userId, type, value, unit, timestamp, notes |
 | **D6: Prescriptions** | Medicine prescriptions | ID, userId, medicines array, doctorName, prescriptionDate, imageUrl |
 | **D7: Diary** | Health diary entries | ID, userId, date, content, summary, mood, tags |
-| **D8: Appointments** | Medical appointments | ID, userId, providerName, date, time, status, notes |
-| **D9: Family** | Family groups | ID, adminId, familyName, members array with roles |
-| **D10: Medicines** | Medicine reference database | ID, name, genericName, manufacturer, indications, dosage, sideEffects |
-| **D11: Lab Tests** | Lab test reference | ID, testName, normalRange, purpose, preparation |
-| **D12: Articles** | Health news articles | ID, title, content, source, publishedDate, imageUrl |
-| **D13: Doctor Verifications** | Doctor verification applications | ID, userId, licenseNumber, specialty, documents, status |
-| **D14: Meeting Requests** | Doctor-admin meeting requests | ID, doctorId, reason, preferredDates, status, adminResponse |
-| **D15: Saved Posts** | User saved articles | ID, userId, articleId, savedDate |
-| **D16: File Storage** | Binary files (Cloudinary) | Lab reports, prescriptions, documents, profile images |
+| **D8: Payments** | Payment transactions | ID, userId, stripeCustomerId, stripeInvoiceId, amount, currency, status |
+| **D9: Appointments** | Medical appointments | ID, userId, doctorId, providerName, date, time, status, notes |
+| **D10: Family** | Family groups | ID, adminId, familyName, members array with roles |
+| **D11: Medicines** | Medicine reference database | ID, name, genericName, manufacturer, indications, dosage, sideEffects |
+| **D12: Lab Tests** | Lab test reference | ID, testName, normalRange, purpose, preparation |
+| **D13: Articles** | Health news articles | ID, title, content, source, publishedDate, imageUrl |
+| **D14: Doctor Verifications** | Doctor verification applications | ID, userId, licenseNumber, specialty, documents, status |
+| **D15: Meeting Requests** | Doctor-admin meeting requests | ID, requesterId, topic, reason, urgency, status, meetingLink |
+| **D16: Saved Posts** | User saved articles | ID, userId, articleId, savedDate |
+| **D17: File Storage** | Binary files (Cloudinary) | Lab reports, prescriptions, documents, profile images |
 
 ---
 
@@ -593,6 +608,354 @@ The Level-0 DFD shows the LifeDoc system as a single process with external entit
 
 ---
 
+### Process 11: Payment & Subscription Management
+
+```
+┌─────────────┐   Subscription Request   ┌───────────────────────┐
+│   PATIENT   │ ────────────────────────▶│  11.1 Create Checkout │
+└─────────────┘                          └───────────┬───────────┘
+                                                    │
+                                                    │ Checkout URL
+                                                    ▼
+     ┌─────────────┐                    ┌───────────────────────┐
+     │Stripe API   │◀───────────────────│  11.2 Generate Session│
+     └─────────────┘                    └───────────┬───────────┘
+                                                    │
+                                                    │ Session URL
+                                                    ▼
+┌─────────────┐   Redirect to Stripe     ┌───────────────────────┐
+│   PATIENT   │◀─────────────────────────│  11.3 Send to Stripe  │
+└──────┬──────┘                          └───────────────────────┘
+       │
+       │ Complete Payment
+       ▼
+     ┌─────────────┐
+     │Stripe       │
+     │(External)   │
+     └──────┬──────┘
+            │
+            │ Webhook Event
+            ▼
+┌───────────────────────┐
+│  11.4 Receive Webhook │
+└───────────┬───────────┘
+            │
+            │ Payment Data
+            ▼
+┌───────────────────────┐
+│  11.5 Verify Signature│
+└───────────┬───────────┘
+            │
+            │ (if valid)
+            ▼
+┌───────────────────────┐
+│  11.6 Process Payment │
+└───────────┬───────────┘
+            │
+            │ Payment Record
+            ▼
+      ┌──────────┐
+      │D8:Payments│
+      └──────────┘
+```
+
+**Data Flows:**
+- Patient → 11.1: Subscription plan ID, billing details
+- 11.1 → 11.2: Create Stripe customer if new
+- 11.2 → Stripe API: Create checkout session
+- Stripe API → 11.3: Session URL (expires in 24 hours)
+- 11.3 → Patient: Redirect to Stripe hosted checkout
+- Patient → Stripe: Complete payment (card details)
+- Stripe → 11.4: Webhook event (invoice.paid, customer.subscription.created)
+- 11.4 → 11.5: Verify webhook signature (HMAC SHA256)
+- 11.6 → D8: Store payment record (stripeCustomerId, amount, status)
+- 11.6 → Patient: Email confirmation with invoice
+
+**Webhook Events Handled:**
+- `invoice.payment_succeeded` - Subscription payment successful
+- `invoice.payment_failed` - Payment failed, retry or cancel
+- `customer.subscription.created` - New subscription activated
+- `customer.subscription.updated` - Subscription changed
+- `customer.subscription.deleted` - Subscription cancelled
+
+---
+
+### Process 12: Doctor Appointment System
+
+```
+┌─────────────┐   Browse Doctors         ┌───────────────────────┐
+│   PATIENT   │ ────────────────────────▶│  12.1 Get Doctor List │
+└─────────────┘                          └───────────┬───────────┘
+                                                    │
+      ┌──────────┐                                  │
+      │ D1:Users │────────────────────────────────▶│
+      └──────────┘                                  │
+                                                    ▼
+                                         ┌───────────────────────┐
+                                         │  12.2 Filter Verified │
+                                         │  Doctors              │
+                                         └───────────┬───────────┘
+                                                    │
+                                                    │ Doctor List
+                                                    ▼
+┌─────────────┐   Select Doctor          ┌───────────────────────┐
+│   PATIENT   │◀─────────────────────────│  12.3 Show Profiles   │
+└──────┬──────┘                          └───────────────────────┘
+       │
+       │ Book Appointment
+       ▼
+┌───────────────────────┐
+│  12.4 Validate Slot   │
+└───────────┬───────────┘
+            │
+            │ (if available)
+            ▼
+┌───────────────────────┐
+│  12.5 Create Appt     │
+└───────────┬───────────┘
+            │
+            │ Appointment Record
+            ▼
+      ┌───────────────┐
+      │D7:Appointments│
+      └───────────────┘
+            │
+            │ Notification
+            ▼
+┌───────────────────────┐
+│  12.6 Notify Doctor   │
+│  (Email)              │
+└───────────────────────┘
+```
+
+**Data Flows:**
+- Patient → 12.1: Optional specialty filter
+- D1 → 12.2: Fetch users where type='doctor' AND isVerified=true
+- 12.3 → Patient: List of verified doctors with specialties
+- Patient → 12.4: DoctorId, date, time, reason
+- 12.4: Check doctor availability, no double booking
+- 12.5 → D7: Create appointment (status: scheduled)
+- 12.6: Send email notification to doctor and patient
+- Patient: Confirmation with appointment details
+
+**Doctor View:**
+- Doctor → System: View my appointments
+- D7 → Doctor: Appointments where doctorId = currentUser._id
+- Doctor → System: Update appointment status (completed, cancelled)
+- System → D7: Update status, send notification to patient
+
+---
+
+### Process 13: Meeting Request Management
+
+```
+┌─────────────┐   Meeting Request        ┌───────────────────────┐
+│   DOCTOR    │ ────────────────────────▶│  13.1 Validate Doctor │
+└─────────────┘                          └───────────┬───────────┘
+                                                    │
+      ┌──────────┐                                  │
+      │ D1:Users │────────────────────────────────▶│
+      └──────────┘                                  │
+                                                    ▼
+                                         ┌───────────────────────┐
+                                         │  13.2 Create Request  │
+                                         └───────────┬───────────┘
+                                                    │
+                                                    │ Meeting Record
+                                                    ▼
+                                              ┌──────────────────┐
+                                              │D14:Meeting       │
+                                              │    Requests      │
+                                              └──────────────────┘
+                                                    │
+                                                    │ Pending List
+                                                    ▼
+┌─────────────┐   Review Meetings        ┌───────────────────────┐
+│    ADMIN    │◀─────────────────────────│  13.3 Fetch Pending   │
+└──────┬──────┘                          └───────────────────────┘
+       │
+       │ Approve/Reject
+       ▼
+┌───────────────────────┐
+│  13.4 Update Status   │
+└───────────┬───────────┘
+            │
+┌───────────┴───────────┐
+▼                       ▼
+┌─────────────────┐   ┌─────────────────┐
+│ 13.5 Schedule   │   │ 13.6 Reject     │
+│ Meeting         │   │ Request         │
+└────────┬────────┘   └────────┬────────┘
+         │                     │
+         │ Meeting Link        │ Rejection Note
+         ▼                     ▼
+   ┌──────────────────┐  ┌──────────────────┐
+   │D14:Meeting       │  │D14:Meeting       │
+   │    Requests      │  │    Requests      │
+   └──────────────────┘  └──────────────────┘
+         │                     │
+         │ Email              │ Email
+         ▼                     ▼
+   ┌──────────┐          ┌──────────┐
+   │  DOCTOR  │          │  DOCTOR  │
+   └──────────┘          └──────────┘
+```
+
+**Data Flows:**
+- Doctor → 13.1: Topic, reason, urgency (Normal/Urgent/Critical)
+- 13.1 → D1: Verify user type = 'doctor'
+- 13.2 → D14: Create meeting request (status: pending)
+- Admin → 13.3: Fetch requests where status='pending'
+- Admin → 13.4: Decision (approve/reject)
+- 13.5 → D14: Update status='scheduled', add meetingLink (Google Meet)
+- 13.5: Set scheduledAt timestamp, duration (default 60 min)
+- 13.6 → D14: Update status='rejected', add reviewNotes
+- System → Doctor: Email notification with meeting link or rejection reason
+
+---
+
+### Process 14: Consultation Review by Doctors
+
+```
+┌─────────────┐   Flag for Review        ┌───────────────────────┐
+│   PATIENT   │ ────────────────────────▶│  14.1 Update Status   │
+└─────────────┘                          └───────────┬───────────┘
+                                                    │
+                                                    │
+                                                    ▼
+                                              ┌─────────────────┐
+                                              │D2:Consultations │
+                                              │(reviewStatus:   │
+                                              │ pending)        │
+                                              └─────────────────┘
+                                                    │
+                                                    │ Review Queue
+                                                    ▼
+┌─────────────┐   Get Pending Reviews    ┌───────────────────────┐
+│   DOCTOR    │◀─────────────────────────│  14.2 Fetch Queue     │
+└──────┬──────┘                          └───────────────────────┘
+       │
+       │ Select Consultation
+       ▼
+┌───────────────────────┐
+│  14.3 Load Full Case │
+└───────────┬───────────┘
+            │
+      ┌─────┴─────┐
+      ▼           ▼
+┌──────────┐  ┌─────────────────┐
+│D2:Consult│  │D1:Users         │
+└──────────┘  └─────────────────┘
+            │
+            │ Case History
+            ▼
+┌───────────────────────┐
+│  14.4 Provide Feedback│
+└───────────┬───────────┘
+            │
+            │ Doctor Feedback
+            ▼
+┌───────────────────────┐
+│  14.5 Update Record   │
+└───────────┬───────────┘
+            │
+            ▼
+      ┌─────────────────┐
+      │D2:Consultations │
+      │(reviewStatus:   │
+      │ reviewed)       │
+      └─────────────────┘
+            │
+            │ Notification
+            ▼
+┌───────────────────────┐
+│  14.6 Notify Patient  │
+└───────────┬───────────┘
+            │
+            ▼
+      ┌──────────┐
+      │  PATIENT │
+      └──────────┘
+```
+
+**Data Flows:**
+- Patient → 14.1: Request review on existing consultation
+- 14.1 → D2: Update reviewStatus from 'none' to 'pending'
+- Doctor → 14.2: Access review queue
+- D2 → 14.2: Fetch consultations where reviewStatus='pending'
+- Doctor → 14.3: Select consultation to review
+- D2 → 14.3: Load consultation with AI analysis
+- D1 → 14.3: Load patient profile, chronic conditions
+- Doctor → 14.4: Provide professional feedback, validate AI recommendations
+- 14.5 → D2: Update reviewStatus='reviewed', add doctorFeedback, reviewedBy, reviewedAt
+- 14.6: Send email/notification to patient
+- Patient: View doctor's professional feedback
+
+---
+
+### Process 15: Saved Posts Management
+
+```
+┌─────────────┐   Browse Health News     ┌───────────────────────┐
+│   PATIENT   │ ────────────────────────▶│  15.1 Fetch Articles  │
+└─────────────┘                          └───────────┬───────────┘
+                                                    │
+      ┌───────────┐                                 │
+      │D12:Articles│────────────────────────────────▶│
+      └───────────┘                                 │
+                                                    ▼
+                                         ┌───────────────────────┐
+                                         │  15.2 Display News    │
+                                         └───────────┬───────────┘
+                                                    │
+                                                    │ Article List
+                                                    ▼
+┌─────────────┐   Save Article           ┌───────────────────────┐
+│   PATIENT   │◀─────────────────────────│  15.3 Show Articles   │
+└──────┬──────┘                          └───────────────────────┘
+       │
+       │ Save Request
+       ▼
+┌───────────────────────┐
+│  15.4 Check Duplicate │
+└───────────┬───────────┘
+            │
+      ┌─────┴─────┐
+      ▼           ▼
+┌──────────────┐  │
+│D15:SavedPosts│◀─┘
+└──────────────┘
+            │
+            │ (if not exists)
+            ▼
+┌───────────────────────┐
+│  15.5 Create Record   │
+└───────────┬───────────┘
+            │
+            │ Saved Post Record
+            ▼
+      ┌──────────────┐
+      │D15:SavedPosts│
+      └──────────────┘
+```
+
+**Data Flows:**
+- Patient → 15.1: View health news
+- D12 → 15.2: Fetch recent articles (sorted by publishedDate)
+- 15.3 → Patient: Display articles with save button
+- Patient → 15.4: Click save on article
+- 15.4 → D15: Check if userId + articleId combination exists
+- 15.5 → D15: Create saved post record (unique constraint)
+- Patient: Success confirmation
+
+**Retrieve Saved Posts:**
+- Patient → System: View my saved posts
+- D15 → System: Fetch where userId = currentUser._id
+- System → D12: Populate article details
+- System → Patient: Display saved articles with unsave option
+
+---
+
 ## AI Module Data Flows
 
 ```
@@ -649,6 +1012,11 @@ The Level-0 DFD shows the LifeDoc system as a single process with external entit
 | Emergency SOS | Location, message | Alert confirmation | - | Twilio SMS, Google Maps |
 | Doctor Verification | Documents | Approval status | D13, D1, D16 | Cloudinary |
 | Admin Management | Management actions | System reports | D1, D2, D10 | - |
+| **Payment & Subscription** | **Plan ID, billing info** | **Payment confirmation** | **D8** | **Stripe API** |
+| **Doctor Appointments** | **DoctorId, date, time** | **Appointment confirmation** | **D7, D1** | **Nodemailer** |
+| **Meeting Requests** | **Topic, reason, urgency** | **Meeting link/rejection** | **D14, D1** | **Google Meet, Nodemailer** |
+| **Consultation Review** | **Consultation ID, feedback** | **Professional review** | **D2** | **Nodemailer** |
+| **Saved Posts** | **Article ID** | **Save confirmation** | **D15, D12** | **-** |
 | Medicine Search | Query string | Drug information | D10 | OpenFDA API |
 | Health News | - | News articles | D12 | News API (scheduled job) |
 
@@ -753,8 +1121,3 @@ This Data Flow Diagram demonstrates:
 - **Auditability**: Complete audit trail for all user actions
 
 ---
-
-**Document Version:** 1.0  
-**Last Updated:** January 11, 2026  
-**Author:** LifeDoc Development Team  
-**Status:** ✅ Production Ready
