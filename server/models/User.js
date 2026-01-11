@@ -41,7 +41,7 @@ const userSchema = new mongoose.Schema({
     chronicConditions: [{ type: String }], // e.g., ["diabetes", "hypertension"]
     storyDesc: { type: String } // AI generated summary of user's lifestyle
   },
-  
+
   subscription: {
     plan: { type: String, enum: ['free', 'premium'], default: 'free' },
     status: { type: String, enum: ['active', 'inactive', 'canceled', 'past_due'], default: 'active' },
@@ -58,6 +58,19 @@ const userSchema = new mongoose.Schema({
   },
 
   sosContacts: [sosContactSchema],
+
+  availability: {
+    days: [{ type: String }], // Mon, Tue, Wed, nm...
+    workingHours: {
+      start: { type: String }, // e.g., "09:00"
+      end: { type: String }    // e.g., "17:00"
+    },
+    lunchBreak: {
+      start: { type: String }, // e.g., "13:00"
+      end: { type: String }    // e.g., "14:00"
+    },
+    slotDuration: { type: Number, default: 30 } // in minutes
+  },
 
   emergencySettings: emergencySettingsSchema
 
