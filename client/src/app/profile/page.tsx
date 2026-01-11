@@ -6,7 +6,7 @@ import DashboardLayout from '@/components/DashboardLayout';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppDispatch, RootState } from '@/store/store';
 import { updateUserProfile, uploadProfilePhoto, fetchUserProfile } from '@/store/slices/authSlice';
-import { FaUser, FaEnvelope, FaBirthdayCake, FaIdCard, FaEdit, FaTimes, FaSave, FaCamera, FaStethoscope, FaCheck, FaChevronRight, FaBookmark, FaShareAlt, FaUserMd, FaCog, FaCrown } from 'react-icons/fa';
+import { FaUser, FaEnvelope, FaBirthdayCake, FaIdCard, FaEdit, FaTimes, FaSave, FaCamera, FaStethoscope, FaCheck, FaChevronRight, FaBookmark, FaShareAlt, FaUserMd, FaCog, FaCrown, FaStar } from 'react-icons/fa';
 import axios from 'axios';
 import Link from 'next/link';
 import { QRCodeCanvas } from 'qrcode.react';
@@ -479,14 +479,22 @@ export default function Profile() {
                                                         user?.subscription?.plan === 'family' ? 'LifeDoc Family' : 'Free Plan'}
                                             </p>
 
-                                            {(!['plus', 'premium', 'family'].includes(user?.subscription?.plan || '') || user?.subscription?.status !== 'active') && (
+                                            {(!['plus', 'premium', 'family'].includes(user?.subscription?.plan || '') || user?.subscription?.status !== 'active') ? (
                                                 <Link href="/pricing" className="text-xs bg-gray-900 text-white px-4 py-2 rounded-lg hover:bg-black transition-colors shadow-lg font-bold">
                                                     Upgrade
                                                 </Link>
+                                            ) : (
+                                                <FaStar className="text-amber-500" />
                                             )}
                                         </div>
 
-                                        {['free', 'plus'].includes(user?.subscription?.plan || 'free') && (
+                                        {['plus', 'premium', 'family'].includes(user?.subscription?.plan || '') && user?.subscription?.status === 'active' && (
+                                            <p className="text-[10px] text-amber-600 font-bold mb-3 flex items-center gap-1">
+                                                <FaCheck className="text-[8px]" /> Member Special Benefits Active
+                                            </p>
+                                        )}
+
+                                        {['free', 'plus'].includes(user?.subscription?.plan || 'free') && user?.subscription?.status !== 'inactive' ? (
                                             <div className="space-y-4 pt-2">
                                                 <div className="grid grid-cols-1 gap-4">
                                                     <div>
@@ -514,6 +522,13 @@ export default function Profile() {
                                                         </div>
                                                     </div>
                                                 </div>
+                                            </div>
+                                        ) : (
+                                            <div className="flex flex-col gap-1 pt-2">
+                                                <p className="text-sm text-amber-800 font-bold flex items-center gap-2">
+                                                    <FaStar className="text-xs" /> Unlimited Access
+                                                </p>
+                                                <p className="text-xs text-amber-600">Enjoy full health insights and premium features!</p>
                                             </div>
                                         )}
                                     </div>
